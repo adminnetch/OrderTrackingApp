@@ -29,15 +29,18 @@ namespace OrderTrackingApp.Controllers
         private readonly ProjectStorageService _storageService;
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
+        private readonly IConfiguration _configuration;
 
         public FileManagerController(
             ProjectStorageService storageService,
             AppDbContext context,
-            UserManager<User> userManager)
+            UserManager<User> userManager,
+            IConfiguration configuration)
         {
             _storageService = storageService;
             _context = context;
             _userManager = userManager;
+            _configuration = configuration;
         }
 
         // Mostra cartelle e file
@@ -394,7 +397,8 @@ namespace OrderTrackingApp.Controllers
             var documentKey = Convert.ToHexString(keyBytes)[..64]; // stabile e compatto
 
             // 🔐 JWT base
-            var secret = "t9ZxwGuaG0XHrb9sCHh9IfeW91qgqYzB";
+            var secret = _configuration["JwtSettings:Secret"];
+                if (string.IsNullOrEmpty(secret)) throw new Exception("Errore critico: Segreto JWT non configurato in appsettings.json.");
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var jwtHandler = new JwtSecurityTokenHandler();
@@ -565,7 +569,8 @@ namespace OrderTrackingApp.Controllers
 
             try
             {
-                var secret = "t9ZxwGuaG0XHrb9sCHh9IfeW91qgqYzB";
+                var secret = _configuration["JwtSettings:Secret"];
+                    if (string.IsNullOrEmpty(secret)) throw new Exception("Errore critico: Segreto JWT non configurato in appsettings.json.");
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
                 new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters
                 {
@@ -642,7 +647,8 @@ namespace OrderTrackingApp.Controllers
                 var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "").Trim();
                 if (string.IsNullOrEmpty(token)) return Unauthorized("Token assente");
 
-                var secret = "t9ZxwGuaG0XHrb9sCHh9IfeW91qgqYzB";
+                var secret = _configuration["JwtSettings:Secret"];
+                if (string.IsNullOrEmpty(secret)) throw new Exception("Errore critico: Segreto JWT non configurato in appsettings.json.");
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
                 new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters
                 {

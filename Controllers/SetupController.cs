@@ -35,16 +35,19 @@ public class SetupController : Controller
         {
             return RedirectToAction("Index", "Home");
         }
-        
+
+
         var state = await _stateService.GetCurrentStateAsync();
-        
+
+
         var model = new SetupWizardViewModel
         {
             CurrentState = state,
             CurrentStep = GetStepFromState(state),
             Profile = "express"
         };
-        
+
+
         return View(model);
     }
 
@@ -57,21 +60,25 @@ public class SetupController : Controller
         }
 
         var state = await _stateService.GetCurrentStateAsync();
-        
+
+
         if (state >= InstallationState.PrerequisitesValidated)
         {
             return RedirectToAction(GetViewFromState(state));
         }
-        
+
+
         var dotnetVersion = Environment.Version;
-        
+
+
         var result = new PrerequisiteCheckViewModel
         {
             DotnetVersion = dotnetVersion.ToString(),
             IsDotnetValid = dotnetVersion.Major >= 6,
             AllChecksPassed = dotnetVersion.Major >= 6
         };
-        
+
+
         return View(result);
     }
 
@@ -80,14 +87,16 @@ public class SetupController : Controller
     public async Task<IActionResult> PrerequisitesPost()
     {
         var state = await _stateService.GetCurrentStateAsync();
-        
+
+
         if (state != InstallationState.NotStarted && state != InstallationState.Failed)
         {
             return RedirectToAction(GetViewFromState(state));
         }
 
         var dotnetVersion = Environment.Version;
-        
+
+
         var result = new PrerequisiteCheckViewModel
         {
             DotnetVersion = dotnetVersion.ToString(),
@@ -113,36 +122,45 @@ public class SetupController : Controller
         }
 
         var state = await _stateService.GetCurrentStateAsync();
-        
+
+
         if (state >= InstallationState.DatabaseConfigured)
         {
             return RedirectToAction(GetViewFromState(state));
         }
-        
+
+
         if (state < InstallationState.PrerequisitesValidated)
         {
             return RedirectToAction("Prerequisites");
         }
-        
+
+
         return View(new DatabaseSetupViewModel());
     }
 
     [HttpPost]
     public async Task<IActionResult> DatabasePost([FromBody] DatabaseSetupViewModel model)
     {
+        // 🚨 FIX: a setup completato (o fase già superata) l'endpoint non esiste più
         var state = await _stateService.GetCurrentStateAsync();
-        
+        if (await IsSetupCompletedAsync() || state >= InstallationState.DatabaseConfigured)
+        {
+            return NotFound();
+        }
         if (state < InstallationState.PrerequisitesValidated)
         {
             return RedirectToAction("Prerequisites");
         }
+        // ... il resto del metodo resta IDENTICO a com'è ora
 
-        var dbPath = string.IsNullOrEmpty(model.DatabasePath) 
+        var dbPath = string.IsNullOrEmpty(model.DatabasePath)
             ? Path.Combine(Directory.GetCurrentDirectory(), "data", "ordertracking.db")
             : model.DatabasePath;
 
         var success = await _sqliteProvider.InitializeDatabaseAsync(dbPath);
-        
+
+
         if (!success)
         {
             return Json(new { success = false, errors = new[] { "Failed to initialize database" } });
@@ -162,17 +180,20 @@ public class SetupController : Controller
         }
 
         var state = await _stateService.GetCurrentStateAsync();
-        
+
+
         if (state >= InstallationState.SuperadminCreated)
         {
             return RedirectToAction("Complete");
         }
-        
+
+
         if (state < InstallationState.DatabaseConfigured)
         {
             return RedirectToAction("Database");
         }
-        
+
+
         return View(new SuperadminSetupViewModel());
     }
 
@@ -180,16 +201,23 @@ public class SetupController : Controller
     [Route("setup/superadminpost")]
     public async Task<IActionResult> SuperadminPost([FromBody] SuperadminSetupViewModel model)
     {
+        // 🚨 FIX: il superadmin si può creare UNA volta sola, durante il wizard
         var state = await _stateService.GetCurrentStateAsync();
-        
+        if (await IsSetupCompletedAsync() || state >= InstallationState.SuperadminCreated)
+        {
+            return NotFound();
+        }
         if (state < InstallationState.DatabaseConfigured)
         {
             return RedirectToAction("Database");
         }
+        // ... il resto del metodo resta IDENTICO a com'è ora
+
 
         var (success, errors) = await _superadminService.CreateSuperadminAsync(
             model.Username!, model.Email!, model.Password!);
-        
+
+
         if (!success)
         {
             return Json(new { success = false, errors });
@@ -209,12 +237,14 @@ public class SetupController : Controller
         }
 
         var state = await _stateService.GetCurrentStateAsync();
-        
+
+
         if (state < InstallationState.SuperadminCreated)
         {
             return RedirectToAction("Superadmin");
         }
-        
+
+
         return View();
     }
 
@@ -222,9 +252,11 @@ public class SetupController : Controller
     public async Task<IActionResult> CompletePost()
     {
         await _stateService.MarkCompleteAsync();
-        
+
+
         _logger.LogInformation("Setup wizard completed successfully");
-        
+
+
         return RedirectToAction("Login", "Account", new { login = "setup" });
     }
 
