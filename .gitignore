@@ -427,3 +427,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Rimozione del file per il developement dalla repo
+appsettings.Development.json
