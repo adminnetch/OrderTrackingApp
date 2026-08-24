@@ -21,6 +21,11 @@ namespace OrderTrackingApp.Controllers
             if (User.Identity?.IsAuthenticated == true)
             {
                 var user = await _userManager.GetUserAsync(User);
+                // 🚨 FIX: utente non loggato o inesistente → login pulito invece del crash
+                if (user == null)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
                 var userPermissions = _context.PermessiUtente
                     .Where(p => p.UserId == user.Id)
                     .Select(p => p.Permission.Name)
