@@ -1,0 +1,53 @@
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4 border-bottom pb-3">Dashboard Amministrazione</h1>
+    
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted small mb-2">Utenti</h6>
+                    <h5 class="card-title">Gestione Utenti</h5>
+                    <p class="card-text small text-muted">Crea, modifica, elimina utenti e gestisci permessi.</p>
+                    <a href="/Admin/Users" class="btn btn-outline-primary btn-sm">Utenti</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted small mb-2">Database</h6>
+                    <h5 class="card-title">Database & Connessione</h5>
+                    <p class="card-text small text-muted">Stato installazione, provider, test connessione e info database.</p>
+                    <a href="/Admin/Database" class="btn btn-outline-primary btn-sm">Database</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted small mb-2">Log</h6>
+                    <h5 class="card-title">Log Applicazione</h5>
+                    <p class="card-text small text-muted">Log tecnici applicativi e diagnostica.</p>
+                    <a href="/Admin/Logs" class="btn btn-outline-primary btn-sm">Log</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted small mb-2">Audit</h6>
+                    <h5 class="card-title">Audit Azioni Utente</h5>
+                    <p class="card-text small text-muted">Eventi di sicurezza e attività amministrative tracciabili.</p>
+                    <a href="/Admin/Audit" class="btn btn-outline-primary btn-sm">Audit</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

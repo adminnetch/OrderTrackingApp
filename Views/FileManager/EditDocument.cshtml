@@ -1,0 +1,58 @@
+@using Newtonsoft.Json
+@{
+    Layout = null;
+
+    string configJson = ViewBag.ConfigJson as string;
+    string token = ViewBag.Token as string; // 👈 MANCAVA QUESTO
+    string callbackToken = ViewBag.CallbackToken as string;
+}
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8" />
+    <title>Modifica documento</title>
+    <script src="https://office.projectcesare.ch/web-apps/apps/api/documents/api.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        #placeholder {
+            height: 100vh;
+            width: 100vw;
+        }
+    </style>
+</head>
+<body>
+    <div id="placeholder"></div>
+
+    <script type="text/javascript">
+        try {
+            var config = @Html.Raw(configJson);
+
+            // ✅ Inserimento token documento
+            config.token = "@token";
+
+            // ✅ Header Authorization per la callback
+            config.events = {
+                onRequestHeaders: function () {
+                    return {
+                        Authorization: "Bearer @callbackToken"
+                    };
+                }
+            };
+
+            console.log("🧪 Config JSON:", config);
+
+            var editor = new DocsAPI.DocEditor("placeholder", config);
+        } catch (err) {
+            document.body.innerHTML = "<pre style='color:red;padding:20px;font-family:monospace;'>⚠️ Errore JavaScript: " + err.message + "</pre>";
+            console.error("❌ Errore JS durante il rendering:", err);
+        }
+    </script>
+</body>
+</html>

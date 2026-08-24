@@ -1,0 +1,58 @@
+@model IEnumerable<OrderTrackingApp.Models.DamageReport>
+@{
+    ViewData["Title"] = "Segnalazioni danni";
+    var requestId = ViewBag.RequestId;
+}
+
+<h2>@ViewData["Title"] - Richiesta @requestId</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success">Nessun danno segnalato per questa richiesta.</div>
+}
+else
+{
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Descrizione</th>
+                <th>Data segnalazione</th>
+                <th>Stato</th>
+                <th>Foto (se disponibile)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var report in Model)
+            {
+                <tr>
+                    <td>@report.Id</td>
+                    <td>@report.Description</td>
+                    <td>@report.ReportedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>
+                        @if (report.IsResolved)
+                        {
+                            <span class="badge bg-success">Risolto</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">In attesa</span>
+                        }
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(report.PhotoPath))
+                        {
+                            <a href="@report.PhotoPath" target="_blank">Visualizza</a>
+                        }
+                        else
+                        {
+                            <em>-</em>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<a asp-action="Details" asp-route-id="@requestId" class="btn btn-link">Torna ai dettagli della richiesta</a>

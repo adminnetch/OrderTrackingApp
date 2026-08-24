@@ -1,0 +1,46 @@
+﻿@model OrderTrackingApp.Models.CinemaOrder
+
+<h2>Crea un Nuovo Progetto</h2>
+
+<form asp-action="Create" method="post">
+    <div>
+        <label for="Nome Progetto">Nome Progetto</label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+    <div>
+        <label for="Director">Regista</label>
+        <input asp-for="Director" class="form-control" />
+        <span asp-validation-for="Director" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label for="Producer">Produttore</label>
+        <input asp-for="Producer" class="form-control" />
+        <span asp-validation-for="Producer" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label for="AssProducer">Ass. Produzione</label>
+        <input asp-for="AssProducer" class="form-control" />
+        <span asp-validation-for="AssProducer" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label for="DoP">Direttore di Fotografia</label>
+        <input asp-for="DoP" class="form-control" />
+        <span asp-validation-for="DoP" class="text-danger"></span>
+    </div>
+
+    <!--
+    <div>
+        <label for="DriveLink">Link Cartella Drive</label>
+        <input asp-for="DriveLink" class="form-control" />
+        <span asp-validation-for="DriveLink" class="text-danger"></span>
+    </div> -->
+
+    <!-- Bottone per inviare il form e creare l'ordine -->
+    <div>
+        <button type="submit" class="btn btn-primary mt-3">Crea Progetto</button>
+    </div>
+</form>

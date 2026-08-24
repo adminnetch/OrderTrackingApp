@@ -1,0 +1,126 @@
+@model OrderTrackingApp.Models.CentroCosto
+
+@{
+    ViewData["Title"] = "Finanze - " + Model.Nome;
+    ViewBag.CinemaOrderId = Model.CinemaOrderId;
+}
+
+<h2 class="mb-4">Centro di Costo: @Model.Nome</h2>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <a asp-action="CreateSpesa" asp-route-centroCostoId="@Model.Id" class="btn btn-success">➕ Nuova Spesa</a>
+
+    <form asp-action="Esporta" method="get" class="d-flex align-items-center gap-2">
+        <input type="hidden" name="cinemaOrderId" value="@Model.CinemaOrderId" />
+        <select name="formato" class="form-select w-auto">
+            <option value="pdf">📄 PDF</option>
+            <option value="excel">📊 Excel</option>
+            <option value="csv">📄 CSV</option>
+        </select>
+        <button type="submit" class="btn btn-outline-primary">📤 Esporta</button>
+    </form>
+</div>
+
+<form method="get" class="d-flex align-items-center gap-2 mb-4">
+    <input type="hidden" name="cinemaOrderId" value="@Model.CinemaOrderId" />
+    <label for="mese" class="form-label mb-0">📅 Filtro Mese:</label>
+    <input type="month" name="mese" id="mese" class="form-control w-auto" value="@Context.Request.Query["mese"]" />
+    <button type="submit" class="btn btn-outline-dark">🔍 Applica</button>
+</form>
+
+@if (Model.Spese.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle text-center">
+            <thead class="table-dark">
+                <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Importo (CHF)</th>
+                    <th>Nota</th>
+                    <th>Scontrino</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var spesa in Model.Spese.OrderByDescending(s => s.Data))
+                {
+                    <tr>
+                        <td>@spesa.Data.ToString("dd/MM/yyyy")</td>
+                        <td>@spesa.Tipo</td>
+                        <td>@spesa.Importo.ToString("N2") CHF</td>
+                        <td>@spesa.Nota</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(spesa.ScontrinoPath))
+                            {
+                                <a asp-action="DownloadScontrino" asp-route-id="@spesa.Id" class="btn btn-sm btn-outline-secondary">📎</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Nessun file</span>
+                            }
+                        </td>
+                        <td class="d-flex justify-content-center gap-1 flex-wrap">
+                            <a asp-action="Details" asp-route-id="@spesa.Id" class="btn btn-sm btn-info">👁️</a>
+                            <a asp-action="EditSpesa" asp-route-id="@spesa.Id" class="btn btn-sm btn-warning">✏️</a>
+
+                            <form asp-action="Delete" asp-route-id="@spesa.Id" method="post" onsubmit="return confirm('Eliminare la spesa?');">
+                                <input type="hidden" name="CentroCostoId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <h5 class="mt-4">Totale per Categoria:</h5>
+<ul class="list-group">
+    @foreach (var gruppo in Model.Spese
+        .GroupBy(s => s.Tipo)
+        .Select(g => new { Tipo = g.Key, Totale = g.Sum(x => x.Importo) }))
+    {
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            @gruppo.Tipo
+            <span class="badge bg-primary rounded-pill">@gruppo.Totale.ToString("N2") CHF</span>
+        </li>
+    }
+</ul>
+
+    </div>
+
+    <div class="text-end mt-3">
+        <h5>Totale spese: <strong>@Model.Spese.Sum(s => s.Importo).ToString("N2") CHF</strong></h5>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">Nessuna spesa registrata.</div>
+}
+
+<canvas id="graficoSpese" height="120"></canvas>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('graficoSpese');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(ViewBag.Categorie)),
+                datasets: [{
+                    label: 'Totale per categoria',
+                    data: @Html.Raw(Json.Serialize(ViewBag.Valori)),
+                    backgroundColor: 'rgba(13, 110, 253, 0.6)'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Spese per Categoria (CHF)' }
+                }
+            }
+        });
+    </script>
+}
+

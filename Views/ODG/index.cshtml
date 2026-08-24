@@ -1,0 +1,61 @@
+﻿@model IEnumerable<OrderTrackingApp.Models.ODGOrder>
+@{
+    ViewData["Title"] = "Ordini del Giorno (ODG)";
+    var cinemaOrderId = ViewBag.CinemaOrderId;
+}
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-black">Ordini del Giorno (ODG)</h1>
+        <a href="@Url.Action("Create", "ODG", new { cinemaOrderId = cinemaOrderId })" class="btn btn-success">
+            + Crea Nuovo ODG
+        </a>
+    </div>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Film</th>
+                <th>Location</th>
+                <th>Scene da Girare</th>
+                <th>Giorno di Ripresa</th>
+                <th>Creato da</th>
+                <th>Modificato da</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var odg in Model)
+                {
+                    <tr>
+                        <td>@odg.Film</td>
+                        <td>@odg.Location</td>
+                        <td>@odg.SceneDaGirare</td>
+                        <td>@odg.DayRec</td>
+                        <td>@odg.CreatedBy</td>
+                        <td>@odg.UpdatedBy</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="@Url.Action("Edit", "ODG", new { id = odg.Id })" class="btn btn-warning btn-sm mx-1">Modifica</a>
+                                <a href="@Url.Action("ExportPDF", "ODG", new { id = odg.Id })" class="btn btn-primary btn-sm mx-1" target="_blank">Esporta PDF</a>
+                                <form asp-action="Delete" asp-route-id="@odg.Id" method="post" onsubmit="return confirm('Eliminare questo ODG?');" class="d-inline">
+                                    <button type="submit" class="btn btn-danger btn-sm mx-1">Elimina</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info">Nessuna Ordine del Giorno registrato per questo progetto.</div>
+            }
+        </tbody>
+    </table>
+
+    <div class="mt-3">
+        <a href="@Url.Action("dashboard", "cinema", new { id = cinemaOrderId })" class="btn btn-secondary">Torna al Progetto</a>
+    </div>
+</div>

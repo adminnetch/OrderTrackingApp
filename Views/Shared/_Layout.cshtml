@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="it-ch">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - OrderTrackingApp</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <!-- Logo -->
+                <a class="navbar-brand" href="/">OrderTrackingApp</a>
+
+                <!-- Navbar Toggler for Mobile -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        @if (User?.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="/">Home</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="https://intranet.projectcesare.ch" target="_blank">ProjectCesare Intranet</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="https://projectcesare.ch" target="_blank">Sito Web</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="https://help.projectcesare.ch/riservatezza" target="_blank">Criterio di Riservatezza</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="https://status.projectcesare.ch" target="_blank">Stato dei Server</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="mailto:service-desk@projectcesare.ch" target="_blank">Segnala un Problema</a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="/">Home</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="https://projectcesare.ch" target="_blank">Visita il nostro sito</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="https://help.projectcesare.ch/riservatezza" target="_blank">Criterio di Riservatezza</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="mailto:service-desk@projectcesare.ch" target="_blank">Segnala un Problema</a>
+                            </li>
+                        }
+                    </ul>
+
+                    <!-- Menù Utente / Login -->
+                    <ul class="navbar-nav ms-auto">
+                        @if (User?.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item" href="/account/profile">Profilo</a></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post">
+                                            <button type="submit" class="dropdown-item">Logout</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="btn btn-primary" href="/account/login">Login</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container text-center">
+            &copy; 2025 ProjectCesare - OrderTrackingApp powered by <a href="https://adminnet.ch" target="_blank">AdminNet</a> | OTA Versione 2.4.4
+        </div>
+    </footer>
+
+    <!-- Assicurati che i seguenti script siano presenti -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> <!-- Usa .bundle.min.js per includere Popper.js -->
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

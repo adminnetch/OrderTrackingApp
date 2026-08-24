@@ -1,0 +1,203 @@
+@model OrderTrackingApp.Models.TroupeCastContact
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+
+@{
+    int projectId = (int)ViewBag.ProjectId;
+    var currentLicense = Model.License ?? 0;
+}
+
+<div class="container my-4">
+    <h1 class="mb-4">Nuovo Contatto</h1>
+
+    @using (Html.BeginForm("Create", "TroupeCastContacts", FormMethod.Post, new { @class = "needs-validation", novalidate = "novalidate" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.CinemaOrderId)
+        @Html.HiddenFor(m => m.EmergencyContact.Id)
+        @Html.HiddenFor(m => m.EmergencyContact.TroupeCastContactId)
+
+        <!-- ▶️ Dati Personali e Ruolo -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-primary text-white">
+    <i class="bi bi-person-circle"></i> Dati personali
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label asp-for="FirstName" class="form-label"></label>
+        <input asp-for="FirstName" class="form-control" required autocomplete="given-name" />
+        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.FirstName)</div>
+      </div>
+      <div class="col-md-6">
+        <label asp-for="LastName" class="form-label"></label>
+        <input asp-for="LastName" class="form-control" required autocomplete="family-name" />
+        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.LastName)</div>
+      </div>
+
+      <div class="col-md-4">
+        <label asp-for="DateOfBirth" class="form-label"></label>
+        <input asp-for="DateOfBirth" type="date" class="form-control" required autocomplete="bday" />
+        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.DateOfBirth)</div>
+      </div>
+      <div class="col-md-4">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" type="email" class="form-control" required autocomplete="email" />
+        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.Email)</div>
+      </div>
+      <div class="col-md-4">
+        <label asp-for="PhoneNumber" class="form-label"></label>
+        <input asp-for="PhoneNumber" class="form-control" required autocomplete="tel" />
+        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.PhoneNumber)</div>
+      </div>
+
+      <div class="col-md-4">
+        <label asp-for="Role" class="form-label"></label>
+        <select asp-for="Role" class="form-select" required asp-items="Html.GetEnumSelectList<ProductionRole>()"></select>
+        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.Role)</div>
+      </div>
+    </div>
+
+    <!-- Nuova riga per Assicurazione, allineata sotto email/telefono/role -->
+    <div class="row mt-3">
+      <div class="col-md-4 offset-md-4">
+        <div class="form-check">
+          <input asp-for="HasAccidentInsurance"
+                 class="form-check-input"
+                 type="checkbox"
+                 id="HasAccidentInsurance" />
+          <label class="form-check-label ms-2" for="HasAccidentInsurance">
+            Assicurazione Infortuni
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+        <!-- ▶️ Abbonamenti & Patenti migliorato -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-dark text-white">
+        <i class="bi bi-ticket-perforated"></i> Abbonamenti & Patenti
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Abbonamenti -->
+            <div class="col-md-6 mb-3">
+                <h5 class="mb-3"><i class="bi bi-card-checklist"></i> Abbonamenti</h5>
+                <ul class="list-group list-group-flush">
+                    @foreach (TransportSubscription sub in Enum.GetValues(typeof(TransportSubscription)))
+                    {
+                        var intVal = (int)sub;
+                        if (intVal == 0) continue;
+                        var member = typeof(TransportSubscription).GetMember(sub.ToString()).First();
+                        var disp = member.GetCustomAttribute<DisplayAttribute>()?.Name ?? sub.ToString();
+                        <li class="list-group-item px-0">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       name="Subscription" 
+                                       value="@intVal" 
+                                       id="sub_@intVal"
+                                       @(Model.Subscription.HasFlag(sub) ? "checked" : "") />
+                                <label class="form-check-label ms-2" for="sub_@intVal">
+                                    @disp
+                                </label>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <!-- Patenti -->
+            <div class="col-md-6 mb-3">
+                <h5 class="mb-3"><i class="bi bi-credit-card-2-front"></i> Patenti</h5>
+                <ul class="list-group list-group-flush">
+                    @{
+                        // rinomino qui
+                        var licenseFlags = Model.License ?? 0;
+                    }
+                    @foreach (SwissLicense lic in Enum.GetValues(typeof(SwissLicense)))
+                    {
+                        var intVal = (int)lic;
+                        if (intVal == 0) continue;
+                        var member = typeof(SwissLicense).GetMember(lic.ToString()).First();
+                        var disp = member.GetCustomAttribute<DisplayAttribute>()?.Name ?? lic.ToString();
+                        <li class="list-group-item px-0">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       name="License" 
+                                       value="@intVal" 
+                                       id="lic_@intVal"
+                                       @(licenseFlags.HasFlag(lic) ? "checked" : "") />
+                                <label class="form-check-label ms-2" for="lic_@intVal">
+                                    @disp
+                                </label>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- ▶️ Contatto di Emergenza -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-telephone-forward"></i> Contatto di Emergenza
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="EmergencyContact.Name" class="form-label"></label>
+                        <input asp-for="EmergencyContact.Name" class="form-control" required />
+                        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.EmergencyContact.Name)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="EmergencyContact.Relation" class="form-label"></label>
+                        <select asp-for="EmergencyContact.Relation" class="form-select" asp-items="Html.GetEnumSelectList<RelationshipLevel>()"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="EmergencyContact.PhoneNumber" class="form-label"></label>
+                        <input asp-for="EmergencyContact.PhoneNumber" class="form-control" required autocomplete="tel" />
+                        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.EmergencyContact.PhoneNumber)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ▶️ Azioni -->
+        <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-success me-2">
+                <i class="bi bi-save-fill"></i> Salva
+            </button>
+            <a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i> Annulla
+            </a>
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+    <script>
+        // Bootstrap client-side validation
+        (function () {
+            'use strict'
+            var forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })();
+    </script>
+}

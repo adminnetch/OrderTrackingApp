@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dettagli Ordine</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content {
+            flex: 1;
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px 0;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5 content">
+        <h1 class="mb-4">Dettagli Ordine</h1>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">Dettagli Cliente</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Nome Cliente:</strong> @Model.CustomerName</p>
+                <p><strong>Email Cliente:</strong> @Model.CustomerEmail</p>
+                <p><strong>Telefono Cliente:</strong> @Model.CustomerPhone</p>
+                <p><strong>Indirizzo Cliente:</strong> @Model.CustomerAddress</p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">Dettagli Ordine</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Numero Ordine:</strong> @Model.OrderNumber</p>
+                <p><strong>Descrizione:</strong></p>
+                <p>@Html.Raw(Model.Description.Replace("\n", "<br />"))</p>
+                <p><strong>Data di Creazione:</strong> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                <p><strong>Stato:</strong> @Model.Status</p>
+                <p><strong>Ultimo Aggiornamento:</strong> @Model.LastUpdated.ToString("dd/MM/yyyy HH:mm")</p>
+                <p><strong>Numero di Tracciamento:</strong> @Model.TrackingNumber</p>
+
+                <p><strong>Note Cliente:</strong></p>
+                <p>@Html.Raw(Model.CustomerNotes?.Replace("\n", "<br />") ?? "Nessuna nota disponibile")</p>
+            </div>
+        </div>
+
+        <a href="@Url.Action("Index", "Order")" class="btn btn-primary mb-4">Torna all'Elenco</a>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

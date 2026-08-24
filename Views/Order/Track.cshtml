@@ -1,0 +1,64 @@
+﻿@model OrderTrackingApp.Models.Order
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracciamento Ordine</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content {
+            flex: 1; /* Si espande per occupare lo spazio disponibile */
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px 0;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5 content">
+        <h1 class="mb-4">Tracciamento Ordine</h1>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">Contatti ProjectCesare</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Nome:</strong> ProjectCesare - Video Production</p>
+                <p><strong>Email:</strong> info@projectcesare.ch</p>
+                <p><strong>Telefono:</strong> +41 79 459 49 08</p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">Dettagli Ordine</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Numero Ordine:</strong> @Model.OrderNumber</p>
+                <p><strong>Descrizione:</strong></p>
+                <p>@Html.Raw(Model.Description.Replace("\n", "<br />"))</p>
+                <p><strong>Data di Creazione:</strong> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                <p><strong>Stato:</strong> @Model.Status</p>
+                <p><strong>Ultimo Aggiornamento:</strong> @Model.LastUpdated.ToString("dd/MM/yyyy HH:mm")</p>
+                <p><strong>Numero di Tracciamento:</strong> @Model.TrackingNumber</p>
+                <p><strong>Note per il Cliente:</strong></p>
+                <p>@Html.Raw(Model.CustomerNotes?.Replace("\n", "<br />") ?? "Nessuna nota disponibile")</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

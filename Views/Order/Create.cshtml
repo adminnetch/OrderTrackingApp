@@ -1,0 +1,46 @@
+﻿@model OrderTrackingApp.Models.Order
+
+<h2>Crea un Nuovo Ordine</h2>
+
+<form asp-action="Create" method="post">
+    <div>
+        <label for="CustomerName">Nome Cliente</label>
+        <input asp-for="CustomerName" class="form-control" />
+        <span asp-validation-for="CustomerName" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label for="CustomerEmail">Email Cliente</label>
+        <input asp-for="CustomerEmail" class="form-control" />
+        <span asp-validation-for="CustomerEmail" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label for="CustomerPhone">Telefono Cliente</label>
+        <input asp-for="CustomerPhone" class="form-control" />
+        <span asp-validation-for="CustomerPhone" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label for="CustomerAddress">Indirizzo Cliente</label>
+        <input asp-for="CustomerAddress" class="form-control" />
+        <span asp-validation-for="CustomerAddress" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label for="Description">Descrizione</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label for="DriveLink">Link Cartella Drive</label>
+        <input asp-for="DriveLink" class="form-control" />
+        <span asp-validation-for="DriveLink" class="text-danger"></span>
+    </div>
+
+    <!-- Bottone per inviare il form e creare l'ordine -->
+    <div>
+        <button type="submit" class="btn btn-primary mt-3">Crea Ordine</button>
+    </div>
+</form>

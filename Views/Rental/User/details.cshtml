@@ -1,0 +1,77 @@
+@model OrderTrackingApp.Models.RentalRequest
+@using OrderTrackingApp.Models
+
+@{
+    ViewData["Title"] = "Dettagli richiesta";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="card mb-3">
+    <div class="card-header bg-light">
+        <strong>Richiesta ID:</strong> @Model.Id
+    </div>
+    <div class="card-body">
+        <p><strong>Cliente:</strong> @Model.Client</p>
+        <p><strong>Tipologia:</strong> @Model.Type</p>
+        <p><strong>Progetto (ID):</strong> @Model.CinemaOrderId</p>
+        <p><strong>Periodo:</strong> @Model.CheckIn.ToShortDateString() - @Model.CheckOut.ToShortDateString()</p>
+        <p><strong>Stato:</strong>
+            <span class="badge bg-@GetBadgeClass(Model.Status)">
+                @Model.Status
+            </span>
+        </p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.RejectionReason))
+        {
+            <div class="alert alert-danger">
+                <strong>Motivo del rifiuto:</strong> @Model.RejectionReason
+            </div>
+        }
+    </div>
+</div>
+
+<h4>Oggetti richiesti</h4>
+<ul class="list-group mb-4">
+    @foreach (var item in Model.RequestItems)
+    {
+        <li class="list-group-item">@item.RentalItem.Name</li>
+    }
+</ul>
+
+@if (Model.Status == RentalStatus.Approved || Model.Status == RentalStatus.MaterialDelivered)
+{
+    <a asp-action="ExportPdf" asp-route-id="@Model.Id" class="btn btn-outline-secondary mb-3">
+        Scarica PDF richiesta
+    </a>
+
+    <hr />
+    <h5>Segnala un danno</h5>
+    <form asp-action="ReportDamage" method="post">
+        <input type="hidden" name="requestId" value="@Model.Id" />
+        <div class="mb-3">
+            <textarea name="description" class="form-control" rows="4"
+                      placeholder="Descrivi il danno riscontrato..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger">Invia segnalazione</button>
+    </form>
+}
+
+<a asp-action="Index" class="btn btn-secondary mt-4">Torna alla lista</a>
+
+@functions {
+    string GetBadgeClass(RentalStatus status)
+    {
+        return status switch
+        {
+            RentalStatus.Pending => "warning",
+            RentalStatus.Approved => "success",
+            RentalStatus.MaterialDelivered => "primary",
+            RentalStatus.RejectedWithReason => "danger",
+            RentalStatus.RejectedWithoutReason => "dark",
+            RentalStatus.Closed => "secondary",
+            RentalStatus.Archived => "light text-dark",
+            _ => "info"
+        };
+    }
+}

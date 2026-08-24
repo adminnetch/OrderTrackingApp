@@ -1,0 +1,63 @@
+@model OrderTrackingApp.Models.PianoDiLavorazione
+@{
+    ViewData["Title"] = "Modifica Piano di Lavorazione";
+}
+
+<h2>Modifica Piano di Lavorazione</h2>
+
+<form asp-action="Edit" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="CinemaOrderId" />
+
+    <div class="form-group">
+        <label asp-for="TitoloCortometraggio"></label>
+        <input asp-for="TitoloCortometraggio" class="form-control" />
+        <span asp-validation-for="TitoloCortometraggio" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="NomeProduzione"></label>
+        <input asp-for="NomeProduzione" class="form-control" />
+        <span asp-validation-for="NomeProduzione" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Regista"></label>
+        <input asp-for="Regista" class="form-control" />
+        <span asp-validation-for="Regista" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Produttore"></label>
+        <input asp-for="Produttore" class="form-control" />
+        <span asp-validation-for="Produttore" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Note"></label>
+        <textarea asp-for="Note" class="form-control"></textarea>
+        <span asp-validation-for="Note" class="text-danger"></span>
+    </div>
+
+    <hr />
+
+    <!-- ✅ Giorni di Ripresa -->
+    <h4>Giorni di Ripresa</h4>
+
+    <div id="giorniRipresaContainer">
+        <!-- Qui caricheremo i Giorni esistenti -->
+    </div>
+
+    <button type="button" class="btn btn-primary my-3" id="addGiornoBtn">➕ Aggiungi Giorno di Ripresa</button>
+
+    <div class="form-group">
+        <input type="submit" value="Salva Modifiche" class="btn btn-success" />
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/pianodilavorazione.js"></script>
+}

@@ -1,0 +1,27 @@
+﻿@model OrderTrackingApp.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+<h2>Login</h2>
+
+<form asp-action="Login" method="post">
+    <div class="form-group">
+        <label for="username">Username</label>
+        <input asp-for="Username" class="form-control" id="username" />
+        <span asp-validation-for="Username" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label for="password">Password</label>
+        <input asp-for="Password" class="form-control" id="password" type="password" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <div class="form-check">
+            <input asp-for="RememberMe" class="form-check-input" id="rememberMe" />
+            <label for="rememberMe" class="form-check-label">Ricordami</label>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Accedi</button>
+</form>

@@ -1,0 +1,128 @@
+﻿@model IEnumerable<OrderTrackingApp.Models.User>
+@{
+    ViewData["Title"] = "Gestione Utenti";
+    var ruoli = ViewBag.RuoliDisponibili as List<string>;
+}
+
+<div class="container mt-5">
+    <!-- Intestazione -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="text-black">Gestione Utenti</h1>
+        <a href="/Admin/newuser" class="btn btn-success">➕ Nuovo Utente</a>
+    </div>
+
+    <!-- Tabella -->
+    <div class="table-responsive">
+        <table class="table table-bordered mt-4">
+            <thead class="table-light">
+                <tr>
+                    <th>Nome</th>
+                    <th>Cognome</th>
+                    <th>Nome Visualizzato</th>
+                    <th>Email</th>
+                    <th>Telefono</th>
+                    <th>Username</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>@user.FirstName</td>
+                        <td>@user.LastName</td>
+                        <td>@user.VisualName</td>
+                        <td>@user.Email</td>
+                        <td>@user.PhoneNumber</td>
+                        <td>@user.UserName</td>
+                        <td class="d-flex gap-1">
+    <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
+            data-bs-target="#editUserModal"
+            onclick="loadUserData('@user.Id', '@user.FirstName', '@user.LastName', '@user.VisualName', '@user.Email', '@user.PhoneNumber', '@user.UserName', '@string.Join(",", user.Role)')">
+        ✏️ Modifica
+    </button>
+
+    <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Confermi eliminazione utente?');">
+        <input type="hidden" name="id" value="@user.Id" />
+        <button type="submit" class="btn btn-danger btn-sm">🗑️ Elimina</button>
+    </form>
+
+    <a asp-action="EditPermessi" asp-route-userId="@user.Id" class="btn btn-primary btn-sm">
+        🔐 Permessi
+    </a>
+</td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modale Modifica Utente -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="EditUser" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Modifica Utente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId" name="id" />
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input type="text" id="editFirstName" name="firstName" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cognome</label>
+                        <input type="text" id="editLastName" name="lastName" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nome Visualizzato</label>
+                        <input type="text" id="editVisualName" name="VisualName" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="editEmail" name="email" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Telefono</label>
+                        <input type="text" id="editPhoneNumber" name="phoneNumber" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" id="editUserName" name="username" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nuova Password (opzionale)</label>
+                        <input type="password" name="password" class="form-control" />
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function loadUserData(id, firstName, lastName, VisualName, email, phoneNumber, username, roleString) {
+            document.getElementById('editUserId').value = id;
+            document.getElementById('editFirstName').value = firstName;
+            document.getElementById('editLastName').value = lastName;
+            document.getElementById('editVisualName').value = VisualName;
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editPhoneNumber').value = phoneNumber;
+            document.getElementById('editUserName').value = username;
+
+            const select = document.getElementById('editRole');
+            const selectedRoles = roleString.split(',').map(r => r.trim());
+
+            for (let i = 0; i < select.options.length; i++) {
+                select.options[i].selected = selectedRoles.includes(select.options[i].value);
+            }
+        }
+    </script>
+}

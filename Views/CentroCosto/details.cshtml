@@ -1,0 +1,52 @@
+@model OrderTrackingApp.Models.VoceSpesa
+
+@{
+    ViewData["Title"] = "Dettagli Spesa";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">🧾 Dettagli della Spesa</h4>
+        </div>
+
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">📅 Data</dt>
+                <dd class="col-sm-8">@Model.Data.ToString("dd/MM/yyyy")</dd>
+
+                <dt class="col-sm-4">📂 Tipo</dt>
+                <dd class="col-sm-8">@Model.Tipo</dd>
+
+                <dt class="col-sm-4">💰 Importo</dt>
+                <dd class="col-sm-8">@Model.Importo.ToString("N2") CHF</dd>
+
+                <dt class="col-sm-4">📝 Nota</dt>
+                <dd class="col-sm-8">@Model.Nota</dd>
+
+                <dt class="col-sm-4">📎 Scontrino</dt>
+                <dd class="col-sm-8">
+                    @if (!string.IsNullOrEmpty(Model.ScontrinoPath))
+                    {
+                        <a asp-action="DownloadScontrino" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
+                            📥 Scarica
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">Nessun file allegato</span>
+                    }
+                </dd>
+            </dl>
+        </div>
+
+        <div class="card-footer d-flex justify-content-between">
+            <a asp-action="Index" asp-route-cinemaOrderId="@Model.CentroCosto.CinemaOrderId" class="btn btn-outline-primary">
+                ⬅️ Torna alla lista
+            </a>
+            <a asp-action="EditSpesa" asp-route-id="@Model.Id" class="btn btn-warning">
+                ✏️ Modifica Spesa
+            </a>
+        </div>
+    </div>
+</div>

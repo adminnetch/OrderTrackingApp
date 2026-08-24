@@ -1,0 +1,76 @@
+﻿@model OrderTrackingApp.Models.CinemaOrder
+
+<div class="container mt-5">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="mb-0">Dettagli Progetto</h3>
+        </div>
+        <div class="card-body">
+            <p><strong>Regista:</strong> @Model.Director</p>
+            <p><strong>Produttore:</strong> @Model.Producer</p>
+            <p><strong>Ass. Produzione:</strong> @Model.AssProducer</p>
+            <p><strong>Direttore di Fotografia:</strong> @Model.DoP</p>
+            <p><strong>Status:</strong> @Model.Status</p>
+            <p><strong>Numero di Progetto:</strong> @Model.ProjectNumber</p>
+            <p><strong>Cartella Drive:</strong> <a href="@Model.DriveLink" target="_blank">Visualizza</a></p>
+            <p><strong>Note di Avanzamento:</strong><br />
+                @Html.Raw(Model.Notes?.Replace("\n", "<br />") ?? "Nessuna nota disponibile")
+            </p>
+            <p><strong>Data di Creazione:</strong> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+            <p><strong>Ultimo Aggiornamento:</strong> @Model.LastUpdated.ToString("dd/MM/yyyy HH:mm")</p>
+        </div>
+    </div>
+
+    <!-- Sezione Location -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Location del Progetto</h4>
+            <a class="btn btn-sm btn-success" asp-controller="Location" asp-action="Create" asp-route-cinemaOrderId="@Model.Id">
+                + Aggiungi Location
+            </a>
+        </div>
+        <div class="card-body">
+            @if (Model.Locations != null && Model.Locations.Any())
+            {
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Contatto</th>
+                            <th>Telefono</th>
+                            <th>Email</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loc in Model.Locations)
+                        {
+                            <tr>
+                                <td>@loc.LocationName</td>
+                                <td>@loc.LocationType</td>
+                                <td>@loc.ContactFirstName @loc.ContactLastName</td>
+                                <td>@loc.ContactPhone</td>
+                                <td>@loc.ContactEmail</td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-primary" asp-controller="Location" asp-action="Details" asp-route-id="@loc.Id">Dettagli</a>
+                                    <a class="btn btn-sm btn-outline-warning" asp-controller="Location" asp-action="Edit" asp-route-id="@loc.Id">Modifica</a>
+                                    <a class="btn btn-sm btn-outline-danger" asp-controller="Location" asp-action="Delete" asp-route-id="@loc.Id">Elimina</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">Nessuna location registrata per questo progetto.</p>
+            }
+        </div>
+    </div>
+
+    <!-- Bottone per tornare all'elenco -->
+    <div class="text-center mt-4">
+        <a href="/cinema/index" class="btn btn-primary">Torna all'elenco</a>
+    </div>
+</div>

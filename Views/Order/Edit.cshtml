@@ -1,0 +1,93 @@
+﻿@model OrderTrackingApp.Models.Order
+
+@{
+    ViewData["Title"] = "Modifica Ordine";
+}
+
+<h1 class="mb-4">Modifica Ordine</h1>
+
+<form asp-action="Edit" method="post" class="needs-validation" novalidate enctype="multipart/form-data">
+    <div class="form-group mb-3">
+        <label for="CustomerName" class="form-label">Nome Cliente</label>
+        <input asp-for="CustomerName" class="form-control" placeholder="Inserisci il nome del cliente" required />
+        <span asp-validation-for="CustomerName" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="CustomerEmail" class="form-label">Email Cliente</label>
+        <input asp-for="CustomerEmail" type="email" class="form-control" placeholder="Inserisci l'email del cliente" required />
+        <span asp-validation-for="CustomerEmail" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="CustomerPhone" class="form-label">Telefono Cliente</label>
+        <input asp-for="CustomerPhone" class="form-control" placeholder="Inserisci il numero di telefono" />
+        <span asp-validation-for="CustomerPhone" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="CustomerAddress" class="form-label">Indirizzo Cliente</label>
+        <input asp-for="CustomerAddress" class="form-control" placeholder="Inserisci l'indirizzo del cliente" />
+        <span asp-validation-for="CustomerAddress" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="Description" class="form-label">Descrizione Ordine</label>
+        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Descrivi brevemente l'ordine"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="Status" class="form-label">Stato Ordine</label>
+        <select asp-for="Status" class="form-control">
+            <optgroup label="Pre-Produzione">
+                <option value="Primo contatto">Primo contatto</option>
+                <option value="Incontro conoscitivo">Incontro conoscitivo</option>
+                <option value="Stesura documenti contrattuali">Stesura documenti contrattuali</option>
+                <option value="Documenti inviati">Documenti inviati</option>
+                <option value="Contratto firmato">Contratto firmato</option>
+                <option value="Chiusura pre-produzione">Chiusura pre-produzione</option>
+            </optgroup>
+            <optgroup label="Produzione">
+                <option value="Produzione del contenuto">Produzione del contenuto</option>
+            </optgroup>
+            <optgroup label="Post-Produzione">
+                <option value="Inizio Post-Produzione">Inizio Post-Produzione</option>
+                <option value="Stesura del Montaggio">Stesura del Montaggio</option>
+                <option value="Revisione Interna">Revisione Interna</option>
+                <option value="Revisione Cliente">Revisione Cliente</option>
+                <option value="Approvazione Cliente">Approvazione Cliente</option>
+                <option value="Esportazione Finale">Esportazione Finale</option>
+            </optgroup>
+            <optgroup label="Consegna">
+                <option value="Lavoro finale inviato">Lavoro finale inviato</option>
+                <option value="In attesa del pagamento">In attesa del pagamento</option>
+                <option value="Pagamento ricevuto">Pagamento ricevuto</option>
+                <option value="Ordine Completato">Ordine Completato</option>
+            </optgroup>
+            <optgroup label="Stati particolari">
+                <option value="In attesa dell'audio">In attesa dell'audio</option>
+                <option value="Chiarimenti con il cliente">Chiarimenti con il cliente</option>
+            </optgroup>
+        </select>
+        <span asp-validation-for="Status" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="DriveLink" class="form-label">Link Cartella Drive</label>
+        <input asp-for="DriveLink" class="form-control" placeholder="Inserisci il link della cartella Drive" />
+        <span asp-validation-for="DriveLink" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-4">
+        <label for="CustomerNotes" class="form-label">Note per il Cliente</label>
+        <textarea asp-for="CustomerNotes" class="form-control" rows="3" placeholder="Inserisci eventuali note per il cliente"></textarea>
+        <span asp-validation-for="CustomerNotes" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-primary me-2">Salva Modifiche</button>
+        <a asp-action="Index" class="btn btn-secondary">Annulla</a>
+    </div>
+</form>

@@ -1,0 +1,611 @@
+@using OrderTrackingApp.Models
+@{
+    ViewData["Title"] = "Gestione File Progetto";
+    var project       = ViewBag.Project      as CinemaOrder;
+    int projectId     = ViewBag.ProjectId;
+    string folderName = ViewBag.FolderName as string ?? "";
+    var folders       = ViewBag.Folders      as List<string>      ?? new();
+    var files         = ViewBag.Files        as List<string>      ?? new();
+    var fileMeta      = ViewBag.FileMetadata as List<ProjectFile> ?? new();
+    var parts         = folderName.Split('/', StringSplitOptions.RemoveEmptyEntries);
+    string bc         = "";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/filemanager/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <div class="app-header">
+        <div class="app-title">
+            <i class="bi bi-folder-fill"></i>
+            <span>@project?.Title - File Manager</span>
+        </div>
+        <a asp-controller="Cinema" asp-action="Dashboard" asp-route-id="@projectId" 
+           class="command-btn ms-auto">
+            <i class="bi bi-arrow-left"></i>
+            <span>Torna alla Dashboard</span>
+        </a>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Navigazione</div>
+                <a href="/FileManager/Index?projectId=@projectId" class="sidebar-item @(string.IsNullOrEmpty(folderName) ? "active" : "")">
+                    <i class="bi bi-house-door"></i>
+                    <span>Home</span>
+                </a>
+                <div class="sidebar-item">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Recenti</span>
+                </div>
+                <div class="sidebar-item">
+                    <i class="bi bi-star"></i>
+                    <span>Preferiti</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Azioni Rapide</div>
+                <div class="sidebar-item" onclick="document.getElementById('fileInput').click()">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    <span>Carica File</span>
+                </div>
+                <div class="sidebar-item" onclick="showNewFolderDialog()">
+                    <i class="bi bi-folder-plus"></i>
+                    <span>Nuova Cartella</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Command Bar -->
+            <div class="command-bar">
+                <button class="command-btn primary" onclick="document.getElementById('fileInput').click()">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    <span>Carica</span>
+                </button>
+                <button class="command-btn" onclick="showNewFolderDialog()">
+                    <i class="bi bi-folder-plus"></i>
+                    <span>Nuova cartella</span>
+                </button>
+                <div class="command-separator"></div>
+                <button id="moveSelectedBtn" class="command-btn" disabled onclick="multiMove()">
+                    <i class="bi bi-arrow-right-square"></i>
+                    <span>Sposta</span>
+                </button>
+                <button id="copySelectedBtn" class="command-btn" disabled onclick="multiCopy()">
+                    <i class="bi bi-files"></i>
+                    <span>Copia</span>
+                </button>
+                <button id="deleteSelectedBtn" class="command-btn" disabled onclick="multiDelete()">
+                    <i class="bi bi-trash"></i>
+                    <span>Elimina</span>
+                </button>
+                <div class="view-toggle">
+                    <button class="active" onclick="setViewMode('grid', this)">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </button>
+                    <button onclick="setViewMode('list', this)">
+                        <i class="bi bi-list-ul"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Breadcrumb -->
+            <div class="breadcrumb-container">
+                <div class="modern-breadcrumb">
+                    <a href="/FileManager/Index?projectId=@projectId">
+                        <i class="bi bi-house-door"></i> Home
+                    </a>
+                    @if (parts.Length > 0)
+                    {
+                        @for (int i = 0; i < parts.Length; i++)
+                        {
+                            bc += parts[i];
+                            <span class="separator">/</span>
+                            if (i == parts.Length - 1)
+                            {
+                                <span class="current">@parts[i]</span>
+                            }
+                            else
+                            {
+                                <a href="/FileManager/Index?projectId=@projectId&folderName=@bc">
+                                    @parts[i]
+                                </a>
+                                bc += "/";
+                            }
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- Files Container -->
+            <div class="files-container">
+                <!-- Folders Section -->
+                @if (folders.Any())
+                {
+                    <div class="section-header">
+                        <i class="bi bi-folder-fill"></i>
+                        <span>Cartelle (@folders.Count)</span>
+                    </div>
+                    <div class="files-grid" id="foldersGrid">
+                        @foreach (var f in folders)
+                        {
+                            var path = string.IsNullOrEmpty(folderName) ? f : $"{folderName}/{f}";
+                            <div class="item-card folder-item" 
+                                 data-path="@path" 
+                                 oncontextmenu="showFolderMenu(event, this)"
+                                 ondblclick="navigateToFolder('@path')">
+                                <i class="bi bi-folder-fill item-icon folder-icon"></i>
+                                <div class="item-name">@f</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Upload Zone -->
+                <form id="uploadForm" asp-action="UploadFile" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="projectId" value="@projectId" />
+                    <input type="hidden" name="folderName" value="@folderName" />
+                    <div class="upload-zone" id="dropZone">
+                        <i class="bi bi-cloud-arrow-up-fill upload-icon"></i>
+                        <div class="upload-text">Trascina qui i file da caricare</div>
+                        <div class="upload-hint">oppure clicca per selezionare</div>
+                        <input type="file" id="fileInput" name="files" multiple 
+                               style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;" />
+                    </div>
+                </form>
+
+                <!-- Files Section -->
+                @if (files.Any())
+                {
+                    <div class="section-header">
+                        <i class="bi bi-file-earmark"></i>
+                        <span>File (@files.Count)</span>
+                    </div>
+                    <div class="files-grid" id="filesGrid">
+                        @foreach (var fn in files)
+                        {
+                            var meta = fileMeta.FirstOrDefault(m => m.FileName == fn && m.FolderName == folderName);
+                            var fileIcon = GetFileIcon(fn);
+                            <div class="item-card file-item" 
+                                 data-file="@fn"
+                                 oncontextmenu="showFileMenu(event, this)"
+                                 ondblclick="openFile('@fn')">
+                                <input type="checkbox" class="item-checkbox file-checkbox" />
+                                <i class="@fileIcon item-icon file-icon"></i>
+                                <div class="item-name">@fn</div>
+                                @if (meta != null)
+                                {
+                                    <div class="item-meta">
+                                        @meta.UploadedAt.ToString("dd/MM")
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else if (!folders.Any())
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-folder-x"></i>
+                        <div class="empty-state-text">Questa cartella è vuota</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menus -->
+    <div id="folderContextMenu" class="context-menu">
+        <div class="context-menu-item" onclick="openFolder()">
+            <i class="bi bi-folder-open"></i>
+            <span>Apri</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="renameFolder()">
+            <i class="bi bi-pencil"></i>
+            <span>Rinomina</span>
+        </div>
+        <div class="context-menu-item" onclick="downloadFolder()">
+            <i class="bi bi-download"></i>
+            <span>Scarica come ZIP</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="deleteFolder()">
+            <i class="bi bi-trash"></i>
+            <span>Elimina</span>
+        </div>
+    </div>
+
+    <div id="fileContextMenu" class="context-menu">
+        <div class="context-menu-item" onclick="openFile(selFile)">
+            <i class="bi bi-eye"></i>
+            <span>Apri</span>
+        </div>
+        <div class="context-menu-item" onclick="editFile()">
+            <i class="bi bi-pencil-square"></i>
+            <span>Modifica</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="renameFile()">
+            <i class="bi bi-pencil"></i>
+            <span>Rinomina</span>
+        </div>
+        <div class="context-menu-item" onclick="downloadFile()">
+            <i class="bi bi-download"></i>
+            <span>Scarica</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="copyFile()">
+            <i class="bi bi-files"></i>
+            <span>Copia in...</span>
+        </div>
+        <div class="context-menu-item" onclick="moveFile()">
+            <i class="bi bi-arrow-right-square"></i>
+            <span>Sposta in...</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="deleteFile()">
+            <i class="bi bi-trash"></i>
+            <span>Elimina</span>
+        </div>
+    </div>
+
+    <!-- Hidden form for folder creation -->
+    <form id="createFolderForm" asp-action="CreateFolder" method="post" style="display: none;">
+        <input type="hidden" name="projectId" value="@projectId" />
+        <input type="hidden" name="parentFolder" value="@folderName" />
+        <input type="hidden" id="newFolderName" name="folderName" />
+    </form>
+
+    <script>
+        // Parametri da Razor
+        const pid = @projectId;
+        const cur = '@folderName';
+        let selFolder = '', selFile = '';
+        let viewMode = 'grid';
+
+        // Helper function per icone file
+        @{
+            string GetFileIcon(string fileName)
+            {
+                var ext = System.IO.Path.GetExtension(fileName).ToLower();
+                return ext switch
+                {
+                    ".pdf" => "bi bi-file-earmark-pdf",
+                    ".doc" or ".docx" => "bi bi-file-earmark-word",
+                    ".xls" or ".xlsx" => "bi bi-file-earmark-excel",
+                    ".ppt" or ".pptx" => "bi bi-file-earmark-ppt",
+                    ".jpg" or ".jpeg" or ".png" or ".gif" => "bi bi-file-earmark-image",
+                    ".zip" or ".rar" => "bi bi-file-earmark-zip",
+                    ".mp4" or ".avi" or ".mov" => "bi bi-file-earmark-play",
+                    ".mp3" or ".wav" => "bi bi-file-earmark-music",
+                    _ => "bi bi-file-earmark"
+                };
+            }
+        }
+
+        // View Mode Toggle
+        function setViewMode(mode, btn) {
+            viewMode = mode;
+            document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Implementare qui la logica per cambiare vista (grid/list)
+            if (mode === 'list') {
+                // Convertire a vista lista
+                console.log('Lista view - da implementare');
+            } else {
+                // Mantenere vista griglia
+                console.log('Grid view');
+            }
+        }
+
+        // Navigation
+        function navigateToFolder(path) {
+            window.location.href = `/FileManager/Index?projectId=${pid}&folderName=${encodeURIComponent(path)}`;
+        }
+
+        function openFolder() {
+            navigateToFolder(selFolder);
+        }
+
+        // New Folder Dialog
+        function showNewFolderDialog() {
+            const name = prompt("Nome della nuova cartella:");
+            if (name) {
+                document.getElementById('newFolderName').value = name;
+                document.getElementById('createFolderForm').submit();
+            }
+        }
+
+        // File Opening
+        function openFile(fileName) {
+            if (!fileName) fileName = selFile;
+            const ext = fileName.split('.').pop().toLowerCase();
+            
+            if (['pdf', 'png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
+                window.open(
+                    `/FileManager/ViewFile?projectId=${pid}` +
+                    `&folderName=${encodeURIComponent(cur)}` +
+                    `&fileName=${encodeURIComponent(fileName)}`,
+                    '_blank'
+                );
+            } else if (['docx', 'xlsx', 'pptx'].includes(ext)) {
+                window.location.href = `/FileManager/EditFile?projectId=${pid}` +
+                    `&folderName=${encodeURIComponent(cur)}` +
+                    `&fileName=${encodeURIComponent(fileName)}`;
+            } else {
+                alert("Anteprima non disponibile per questo tipo di file");
+            }
+        }
+
+        // Drag & Drop
+        const dz = document.getElementById('dropZone');
+        const fi = document.getElementById('fileInput');
+        const uf = document.getElementById('uploadForm');
+
+        ['dragenter', 'dragover'].forEach(evt => {
+            dz.addEventListener(evt, e => {
+                e.preventDefault();
+                dz.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(evt => {
+            dz.addEventListener(evt, e => {
+                e.preventDefault();
+                dz.classList.remove('dragover');
+            });
+        });
+
+        dz.addEventListener('drop', e => {
+            fi.files = e.dataTransfer.files;
+            uf.submit();
+        });
+
+        fi.addEventListener('change', () => uf.submit());
+
+        // Multi-selection
+        document.querySelectorAll('.file-checkbox').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const checkedCount = document.querySelectorAll('.file-checkbox:checked').length;
+                const anyChecked = checkedCount > 0;
+                
+                document.getElementById('moveSelectedBtn').disabled = !anyChecked;
+                document.getElementById('copySelectedBtn').disabled = !anyChecked;
+                document.getElementById('deleteSelectedBtn').disabled = !anyChecked;
+                
+                // Update selected state
+                cb.closest('.item-card').classList.toggle('selected', cb.checked);
+            });
+        });
+
+        // Context Menu
+        function showContextMenu(menu, x, y) {
+            document.querySelectorAll('.context-menu').forEach(m => m.style.display = 'none');
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            menu.style.display = 'block';
+        }
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.context-menu').forEach(m => m.style.display = 'none');
+        });
+
+        function showFolderMenu(e, el) {
+            e.preventDefault();
+            selFolder = el.dataset.path;
+            showContextMenu(document.getElementById('folderContextMenu'), e.pageX, e.pageY);
+        }
+
+        function showFileMenu(e, el) {
+            e.preventDefault();
+            selFile = el.dataset.file;
+            showContextMenu(document.getElementById('fileContextMenu'), e.pageX, e.pageY);
+        }
+
+        // Folder Actions
+        function renameFolder() {
+            const oldName = selFolder.split('/').pop();
+            const newName = prompt("Nuovo nome cartella:", oldName);
+            if (!newName || newName === oldName) return;
+            window.location = `/FileManager/RenameFolder` +
+                `?projectId=${pid}` +
+                `&oldPath=${encodeURIComponent(selFolder)}` +
+                `&newName=${encodeURIComponent(newName)}`;
+        }
+
+        function deleteFolder() {
+            if (!confirm(`Eliminare la cartella "${selFolder}"?\nQuesta azione non può essere annullata.`)) return;
+            window.location = `/FileManager/DeleteFolder` +
+                `?projectId=${pid}` +
+                `&folderName=${encodeURIComponent(selFolder)}`;
+        }
+
+        function downloadFolder() {
+            window.location = `/FileManager/DownloadFolderZip` +
+                `?projectId=${pid}` +
+                `&folderName=${encodeURIComponent(selFolder)}`;
+        }
+
+        // File Actions
+        function renameFile() {
+            const oldName = selFile;
+            const newName = prompt("Nuovo nome file:", oldName);
+            if (!newName || newName === oldName) return;
+            window.location = `/FileManager/RenameFile` +
+                `?projectId=${pid}` +
+                `&folderName=${encodeURIComponent(cur)}` +
+                `&oldFileName=${encodeURIComponent(oldName)}` +
+                `&newFileName=${encodeURIComponent(newName)}`;
+        }
+
+        function deleteFile() {
+            if (!confirm(`Eliminare il file "${selFile}"?\nQuesta azione non può essere annullata.`)) return;
+            window.location = `/FileManager/DeleteFile` +
+                `?projectId=${pid}` +
+                `&folderName=${encodeURIComponent(cur)}` +
+                `&fileName=${encodeURIComponent(selFile)}`;
+        }
+
+        function downloadFile() {
+            window.location = `/FileManager/DownloadFile` +
+                `?projectId=${pid}` +
+                `&folderName=${encodeURIComponent(cur)}` +
+                `&fileName=${encodeURIComponent(selFile)}`;
+        }
+
+        function copyFile() {
+            const dest = prompt("Cartella di destinazione:", cur);
+            if (dest == null) return;
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = "/FileManager/CopyFile";
+            [
+                ["projectId", pid],
+                ["srcFolder", cur],
+                ["destFolder", dest],
+                ["fileName", selFile]
+            ].forEach(([n, v]) => {
+                const i = document.createElement("input");
+                i.type = "hidden";
+                i.name = n;
+                i.value = v;
+                form.appendChild(i);
+            });
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function moveFile() {
+            const dest = prompt("Cartella di destinazione:", cur);
+            if (dest == null) return;
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = "/FileManager/MoveFile";
+            [
+                ["projectId", pid],
+                ["srcFolder", cur],
+                ["destFolder", dest],
+                ["fileName", selFile]
+            ].forEach(([n, v]) => {
+                const i = document.createElement("input");
+                i.type = "hidden";
+                i.name = n;
+                i.value = v;
+                form.appendChild(i);
+            });
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function editFile() {
+            const ext = selFile.split('.').pop().toLowerCase();
+            if (["docx", "xlsx", "pptx"].includes(ext)) {
+                window.location.href = `/FileManager/EditFile` +
+                    `?projectId=${pid}` +
+                    `&folderName=${encodeURIComponent(cur)}` +
+                    `&fileName=${encodeURIComponent(selFile)}`;
+            } else {
+                alert("Modifica non supportata per questo tipo di file.");
+            }
+        }
+
+        // Multi-file actions
+        function multiCopy() {
+            const selected = document.querySelectorAll('.file-checkbox:checked');
+            if (selected.length === 0) return;
+            
+            const dest = prompt("Cartella di destinazione per i file selezionati:", cur);
+            if (dest == null) return;
+            
+            // Qui andrebbe implementata la logica per copiare multipli file
+            // Per ora mostro solo un alert
+            alert(`Funzionalità di copia multipla da implementare.\nFile selezionati: ${selected.length}\nDestinazione: ${dest}`);
+        }
+
+        function multiMove() {
+            const selected = document.querySelectorAll('.file-checkbox:checked');
+            if (selected.length === 0) return;
+            
+            const dest = prompt("Cartella di destinazione per spostare i file selezionati:", cur);
+            if (dest == null) return;
+            
+            // Qui andrebbe implementata la logica per spostare multipli file
+            // Per ora mostro solo un alert
+            alert(`Funzionalità di spostamento multiplo da implementare.\nFile selezionati: ${selected.length}\nDestinazione: ${dest}`);
+        }
+
+        function multiDelete() {
+            const selected = document.querySelectorAll('.file-checkbox:checked');
+            if (selected.length === 0) return;
+            
+            if (!confirm(`Eliminare ${selected.length} file selezionati?\nQuesta azione non può essere annullata.`)) return;
+            
+            // Qui andrebbe implementata la logica per eliminare multipli file
+            // Per ora mostro solo un alert
+            alert(`Funzionalità di eliminazione multipla da implementare.\nFile da eliminare: ${selected.length}`);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+A - Select all
+            if (e.ctrlKey && e.key === 'a') {
+                e.preventDefault();
+                document.querySelectorAll('.file-checkbox').forEach(cb => {
+                    cb.checked = true;
+                    cb.closest('.item-card').classList.add('selected');
+                });
+                updateSelectionButtons();
+            }
+            
+            // Delete - Delete selected
+            if (e.key === 'Delete') {
+                const selected = document.querySelectorAll('.file-checkbox:checked');
+                if (selected.length > 0) {
+                    multiDelete();
+                }
+            }
+            
+            // Escape - Deselect all
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.file-checkbox').forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('.item-card').classList.remove('selected');
+                });
+                updateSelectionButtons();
+            }
+        });
+
+        function updateSelectionButtons() {
+            const checkedCount = document.querySelectorAll('.file-checkbox:checked').length;
+            const anyChecked = checkedCount > 0;
+            
+            document.getElementById('moveSelectedBtn').disabled = !anyChecked;
+            document.getElementById('copySelectedBtn').disabled = !anyChecked;
+            document.getElementById('deleteSelectedBtn').disabled = !anyChecked;
+        }
+
+        // Initialize tooltips if Bootstrap is loaded
+        if (typeof bootstrap !== 'undefined') {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+
+        // Auto-refresh (optional)
+        // setInterval(() => location.reload(), 60000); // Refresh every minute
+    </script>
+</body>
+</html>

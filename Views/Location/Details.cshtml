@@ -1,0 +1,81 @@
+﻿@model OrderTrackingApp.Models.Location
+
+@{
+    ViewData["Title"] = "Dettagli Location";
+    var cinemaOrderId = Model.CinemaOrderId;
+}
+
+<div class="container mt-5">
+    <h1 class="mb-4">Dettagli Location</h1>
+
+    <!-- Sezione Contatti Proprietario -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="mb-0">Contatti Proprietario</h3>
+        </div>
+        <div class="card-body">
+            <p><strong>Nome:</strong> @Model.ContactFirstName</p>
+            <p><strong>Cognome:</strong> @Model.ContactLastName</p>
+            <p><strong>Telefono:</strong> 
+                @if (!string.IsNullOrWhiteSpace(Model.ContactPhone))
+                {
+                    <a href="tel:@Model.ContactPhone">@Model.ContactPhone</a>
+                }
+                else
+                {
+                    <span class="text-muted">Non disponibile</span>
+                }
+            </p>
+            <p><strong>Email:</strong> 
+                @if (!string.IsNullOrWhiteSpace(Model.ContactEmail))
+                {
+                    <a href="mailto:@Model.ContactEmail">@Model.ContactEmail</a>
+                }
+                else
+                {
+                    <span class="text-muted">Non disponibile</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <!-- Sezione Dettagli Location -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="mb-0">Dettagli Location</h3>
+        </div>
+        <div class="card-body">
+            <p><strong>Nome:</strong> @Model.LocationName</p>
+            <p><strong>Tipo:</strong> @Model.LocationType</p>
+            <p><strong>Descrizione:</strong></p>
+            <p style="white-space: pre-wrap;">@Model.Description</p>
+            <p><strong>Indirizzo:</strong> @Model.Address</p>
+            <p><strong>Google Maps:</strong> 
+                @if (!string.IsNullOrWhiteSpace(Model.GoogleMapsLink))
+                {
+                    <a href="@Model.GoogleMapsLink" target="_blank">Visualizza</a>
+                }
+                else
+                {
+                    <span class="text-muted">Non disponibile</span>
+                }
+            </p>
+            <p><strong>Foto Location:</strong> 
+                @if (!string.IsNullOrWhiteSpace(Model.CartellaFotoLocation))
+                {
+                    <a href="@Model.CartellaFotoLocation" target="_blank">Visualizza</a>
+                }
+                else
+                {
+                    <span class="text-muted">Non disponibile</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <!-- ✅ Pulsanti -->
+    <div class="text-center mt-4">
+        <a asp-controller="Location" asp-action="Index" asp-route-cinemaOrderId="@cinemaOrderId" class="btn btn-primary">Torna alle Location</a>
+        <a asp-controller="Cinema" asp-action="Dashboard" asp-route-id="@cinemaOrderId" class="btn btn-secondary ms-2">Torna al Progetto</a>
+    </div>
+</div>

@@ -1,0 +1,161 @@
+@model OrderTrackingApp.Models.TroupeCastContact
+
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+
+@{
+    // fallback su Model.CinemaOrderId se ViewBag.ProjectId è null
+    int projectId;
+    if (ViewBag.ProjectId is int pid)
+    {
+        projectId = pid;
+    }
+    else
+    {
+        projectId = Model.CinemaOrderId;
+    }
+
+    var selectedSubs = Enum.GetValues<TransportSubscription>()
+                           .Cast<TransportSubscription>()
+                           .Where(s => (int)s != 0 && Model.Subscription.HasFlag(s))
+                           .ToList();
+
+    var selectedLicenses = Enum.GetValues<SwissLicense>()
+                               .Cast<SwissLicense>()
+                               .Where(l => (int)l != 0 && (Model.License ?? 0).HasFlag(l))
+                               .ToList();
+}
+
+<div class="container my-4">
+    <h1 class="mb-4">Dettagli Contatto</h1>
+
+    <!-- ▶️ Dati Personali -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-person-circle"></i> Dati Personali
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Nome</dt>
+                <dd class="col-sm-9">@Model.FirstName</dd>
+
+                <dt class="col-sm-3">Cognome</dt>
+                <dd class="col-sm-9">@Model.LastName</dd>
+
+                <dt class="col-sm-3">Data di nascita</dt>
+                <dd class="col-sm-9">@Model.DateOfBirth.ToString("dd/MM/yyyy")</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9"><a href="mailto:@Model.Email">@Model.Email</a></dd>
+
+                <dt class="col-sm-3">Telefono</dt>
+                <dd class="col-sm-9"><a href="tel:@Model.PhoneNumber">@Model.PhoneNumber</a></dd>
+
+                <dt class="col-sm-3">Ruolo</dt>
+                <dd class="col-sm-9"><span class="badge bg-info text-dark">@Model.Role</span></dd>
+
+                <dt class="col-sm-3">Assicurazione Infortuni</dt>
+                <dd class="col-sm-9">
+                    @if (Model.HasAccidentInsurance)
+                    {
+                        <span class="text-success"><i class="bi bi-check-circle-fill"></i> Sì</span>
+                    }
+                    else
+                    {
+                        <span class="text-danger"><i class="bi bi-x-circle-fill"></i> No</span>
+                    }
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <!-- ▶️ Abbonamenti & Patenti -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-ticket-perforated"></i> Abbonamenti & Patenti
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Abbonamenti -->
+                <div class="col-md-6 mb-3">
+                    <h5 class="mb-3"><i class="bi bi-card-checklist"></i> Abbonamenti</h5>
+                    <ul class="list-group list-group-flush">
+                        @if (selectedSubs.Any())
+                        {
+                            @foreach (var sub in selectedSubs)
+                            {
+                                var disp = typeof(TransportSubscription)
+                                    .GetMember(sub.ToString()).First()
+                                    .GetCustomAttribute<DisplayAttribute>()?
+                                    .Name ?? sub.ToString();
+                                <li class="list-group-item">@disp</li>
+                            }
+                        }
+                        else
+                        {
+                            <li class="list-group-item text-muted">Nessuno</li>
+                        }
+                    </ul>
+                </div>
+
+                <!-- Patenti -->
+                <div class="col-md-6 mb-3">
+                    <h5 class="mb-3"><i class="bi bi-credit-card-2-front"></i> Patenti</h5>
+                    <ul class="list-group list-group-flush">
+                        @if (selectedLicenses.Any())
+                        {
+                            @foreach (var lic in selectedLicenses)
+                            {
+                                var disp = typeof(SwissLicense)
+                                    .GetMember(lic.ToString()).First()
+                                    .GetCustomAttribute<DisplayAttribute>()?
+                                    .Name ?? lic.ToString();
+                                <li class="list-group-item">@disp</li>
+                            }
+                        }
+                        else
+                        {
+                            <li class="list-group-item text-muted">Nessuna</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ▶️ Contatto di Emergenza -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-info text-white">
+            <i class="bi bi-telephone-forward"></i> Contatto di Emergenza
+        </div>
+        <div class="card-body">
+            @if (Model.EmergencyContact != null)
+            {
+                <dl class="row">
+                    <dt class="col-sm-3">Nome</dt>
+                    <dd class="col-sm-9">@Model.EmergencyContact.Name</dd>
+
+                    <dt class="col-sm-3">Relazione</dt>
+                    <dd class="col-sm-9">@Model.EmergencyContact.Relation</dd>
+
+                    <dt class="col-sm-3">Telefono</dt>
+                    <dd class="col-sm-9"><a href="tel:@Model.EmergencyContact.PhoneNumber">@Model.EmergencyContact.PhoneNumber</a></dd>
+                </dl>
+            }
+            else
+            {
+                <p class="text-muted"><em>Nessun contatto di emergenza registrato.</em></p>
+            }
+        </div>
+    </div>
+
+    <!-- ▶️ Azioni -->
+    <div class="d-flex justify-content-end">
+        <a asp-action="Edit" asp-route-id="@Model.Id" asp-route-projectId="@projectId" class="btn btn-warning me-2">
+            <i class="bi bi-pencil-fill"></i> Modifica
+        </a>
+        <a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-secondary">
+            <i class="bi bi-arrow-left-circle"></i> Torna alla lista
+        </a>
+    </div>
+</div>

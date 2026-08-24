@@ -1,0 +1,34 @@
+﻿@model OrderTrackingApp.Models.User
+
+<div class="container mt-5">
+    <h1>Profilo Utente</h1>
+
+    <!-- Sezione per modificare i dati personali -->
+    <form asp-action="UpdateProfile" method="post">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="Email" value="@Model.Email" />
+        </div>
+        <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+    </form>
+
+    <hr />
+
+    <!-- Sezione per cambiare la password -->
+    <h2>Cambia Password</h2>
+    <form asp-action="ChangePassword" method="post">
+        <div class="mb-3">
+            <label for="currentPassword" class="form-label">Password Attuale</label>
+            <input type="password" class="form-control" id="currentPassword" name="CurrentPassword"/>
+        </div>
+        <div class="mb-3">
+            <label for="newPassword" class="form-label">Nuova Password</label>
+            <input type="password" class="form-control" id="newPassword" name="NewPassword"/>
+        </div>
+        <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Conferma Nuova Password</label>
+            <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword"/>
+        </div>
+        <button type="submit" class="btn btn-primary">Cambia Password</button>
+    </form>
+</div>

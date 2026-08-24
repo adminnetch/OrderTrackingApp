@@ -1,0 +1,63 @@
+@model IEnumerable<OrderTrackingApp.Models.RentalRequest>
+@using OrderTrackingApp.Models
+
+@{
+    ViewData["Title"] = "Gestione richieste noleggio";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Utente</th>
+            <th>Progetto</th>
+            <th>Cliente</th>
+            <th>Periodo</th>
+            <th>Tipologia</th>
+            <th>Stato</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var request in Model)
+        {
+            <tr>
+                <td>@request.Id</td>
+                <td>@request.UserVisualName</td>
+                <td>@request.CinemaOrderId</td>
+                <td>@request.Client</td>
+                <td>@request.CheckIn.ToShortDateString() - @request.CheckOut.ToShortDateString()</td>
+                <td>@request.Type</td>
+                <td>
+                    <span class="badge bg-@GetBadgeClass(request.Status)">
+                        @request.Status
+                    </span>
+                </td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@request.Id" class="btn btn-sm btn-primary">
+                        Dettagli
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@functions {
+    string GetBadgeClass(RentalStatus status)
+    {
+        return status switch
+        {
+            RentalStatus.Pending => "warning",
+            RentalStatus.Approved => "success",
+            RentalStatus.MaterialDelivered => "primary",
+            RentalStatus.RejectedWithReason => "danger",
+            RentalStatus.RejectedWithoutReason => "dark",
+            RentalStatus.Closed => "secondary",
+            RentalStatus.Archived => "light text-dark",
+            _ => "info"
+        };
+    }
+}

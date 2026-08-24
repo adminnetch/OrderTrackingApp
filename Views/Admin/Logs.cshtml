@@ -1,0 +1,139 @@
+@model List<OrderTrackingApp.Models.LogEntry>
+@{
+    ViewData["Title"] = "Log Applicazione";
+    var logEntries = ViewBag.LogEntries as List<LogEntry> ?? new List<LogEntry>();
+    var logLevels = ViewBag.LogLevels as string[] ?? new[] { "Information", "Warning", "Error" };
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4 border-bottom pb-3">Log Applicazione</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> File Log</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0 small text-muted">
+                        I log sono salvati nella cartella <code>logs/</code> con rolling giornaliero.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar"></i> Ritenzione</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0 small text-muted">
+                        I log sono conservati per 30 giorni. I file più vecchi vengono eliminati automaticamente.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Totale</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h2 class="mb-0">@logEntries.Count</h2>
+                    <small class="text-muted">eventi totali</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtri</h5>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button type="button" class="btn btn-sm btn-outline-secondary active" data-filter="">Tutti</button>
+                            @foreach (var level in logLevels)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-@(level == "Error" ? "danger" : level == "Warning" ? "warning" : "primary")" data-filter="@level">@level</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (logEntries.Count == 0)
+                    {
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i> Nessun log disponibile. La cartella logs/ potrebbe essere vuota o i log potrebbero non essere ancora stati scritti.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-sm table-striped mb-0" id="logTable">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 160px;">Timestamp</th>
+                                        <th style="width: 100px;">Livello</th>
+                                        <th>Messaggio</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var entry in logEntries)
+                                    {
+                                        <tr class="@(entry.Level == "Error" ? "table-danger" : entry.Level == "Warning" ? "table-warning" : "")" data-level="@entry.Level">
+                                            <td><small>@entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</small></td>
+                                            <td>
+                                                <span class="badge bg-@(entry.Level == "Error" ? "danger" : entry.Level == "Warning" ? "warning" : "info")">
+                                                    @entry.Level
+                                                </span>
+                                            </td>
+                                            <td><small>@entry.Message</small></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="/Admin" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Torna alla Dashboard
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var buttons = document.querySelectorAll('[data-filter]');
+            var rows = document.querySelectorAll('#logTable tbody tr');
+            
+            buttons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var filter = this.getAttribute('data-filter');
+                    
+                    buttons.forEach(function(b) { b.classList.remove('active'); });
+                    this.classList.add('active');
+                    
+                    rows.forEach(function(row) {
+                        if (!filter || row.getAttribute('data-level') === filter) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+}

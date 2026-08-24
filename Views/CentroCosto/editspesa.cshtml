@@ -1,0 +1,72 @@
+@model OrderTrackingApp.Models.VoceSpesa
+
+@{
+    ViewData["Title"] = "Modifica Spesa";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0">✏️ Modifica Spesa</h4>
+        </div>
+
+        <div class="card-body">
+            <form asp-action="EditSpesa" method="post" enctype="multipart/form-data">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="CentroCostoId" />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Data" class="form-label">📅 Data</label>
+                    <input asp-for="Data" type="date" class="form-control" />
+                    <span asp-validation-for="Data" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Tipo" class="form-label">📂 Tipo</label>
+                    <select asp-for="Tipo" class="form-select">
+                        <option value="Catering">Catering</option>
+                        <option value="Trasporti">Trasporti</option>
+                        <option value="Materiali">Materiali</option>
+                        <option value="Noleggi">Noleggi</option>
+                        <option value="Permessi">Permessi</option>
+                        <option value="Altro">Altro</option>
+                    </select>
+                    <span asp-validation-for="Tipo" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Importo" class="form-label">💰 Importo (CHF)</label>
+                    <input asp-for="Importo" class="form-control" step="0.01" />
+                    <span asp-validation-for="Importo" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Nota" class="form-label">📝 Nota</label>
+                    <textarea asp-for="Nota" class="form-control"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">📎 Scontrino / Ricevuta</label>
+                    <input type="file" name="scontrino" class="form-control" />
+                    @if (!string.IsNullOrEmpty(Model.ScontrinoPath))
+                    {
+                        <small class="text-muted mt-1 d-block">
+                            File attuale: <a asp-action="DownloadScontrino" asp-route-id="@Model.Id" target="_blank">📥 Scarica</a>
+                        </small>
+                    }
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-action="Index" asp-route-cinemaOrderId="@Model.CentroCosto.CinemaOrderId" class="btn btn-outline-secondary">⬅️ Annulla</a>
+                    <button type="submit" class="btn btn-success">💾 Salva Modifiche</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

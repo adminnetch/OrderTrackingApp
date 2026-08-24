@@ -1,0 +1,50 @@
+﻿@model IEnumerable<OrderTrackingApp.Models.CinemaOrder>
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="text-black">Progetti</h1>
+        <a href="/cinema/create" class="btn btn-success">Crea Nuovo Progetto</a>
+    </div>
+
+    <div class="d-flex mb-3">
+        <input type="text" class="form-control me-2" id="localSearchQuery" placeholder="Cerca ordini per numero" />
+        <button id="localSearchButton" class="btn btn-primary">Cerca</button>
+    </div>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Numero di Progetto</th>
+                <th>Nome Progetto</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var cinemaOrder in Model)
+                {
+                    <tr>
+                        <td>@cinemaOrder.ProjectNumber</td>
+                        <td>@cinemaOrder.Title</td>
+                        <td>@cinemaOrder.Status</td>
+                        <td>
+                            <a href="/cinema/dashboard/@cinemaOrder.Id" class="btn btn-primary btn-sm">Dashboard</a>
+                           <!-- <a href="/cinema/edit/@cinemaOrder.Id" class="btn btn-warning btn-sm">Modifica</a> -->
+                           <!-- <form method="post" action="/cinema/delete/@cinemaOrder.Id" style="display:inline;"> -->
+                           <!--     <button type="submit" class="btn btn-danger btn-sm">Elimina</button> -->
+                           <!-- </form> -->
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="6" class="text-center">Nessun ordine disponibile</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

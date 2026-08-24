@@ -1,0 +1,133 @@
+@model OrderTrackingApp.Controllers.SuperadminSetupViewModel
+@{
+    ViewData["Title"] = "SuperAdmin Setup";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4>Configurazione SuperAdmin</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <strong>Attenzione:</strong> Questo utente avrà accesso completo al sistema.
+                    </div>
+                    
+                    <form id="superadminForm">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required="required"
+                                   minlength="3" maxlength="50" />
+                            <small class="text-muted">Minimo 3 caratteri</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required="required" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required="required"
+                                   minlength="12" />
+                            <small class="text-muted">Minimo 12 caratteri, maiuscola, minuscola, numero, speciale</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Conferma Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" required="required" />
+                        </div>
+                        
+                        <button type="submit" class="btn btn-danger">Crea SuperAdmin</button>
+                    </form>
+                    
+                    <div id="result" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var superadminForm = document.getElementById('superadminForm');
+    var resultDiv = document.getElementById('result');
+    
+    if (!superadminForm || !resultDiv) {
+        console.error('Required DOM elements not found');
+        if (resultDiv) {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Errore: Elementi della pagina non caricati. Ricarica la pagina.</div>';
+        }
+        return;
+    }
+    
+    superadminForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var usernameInput = document.getElementById('username');
+        var emailInput = document.getElementById('email');
+        var passwordInput = document.getElementById('password');
+        var confirmPasswordInput = document.getElementById('confirmPassword');
+        
+        if (!usernameInput || !emailInput || !passwordInput || !confirmPasswordInput) {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Errore: Input non trovati. Ricarica la pagina.</div>';
+            return;
+        }
+        
+        var username = usernameInput.value;
+        var email = emailInput.value;
+        var password = passwordInput.value;
+        var confirmPassword = confirmPasswordInput.value;
+        
+        if (!username || !email || !password || !confirmPassword) {
+            resultDiv.innerHTML = '<div class="alert alert-warning">Inserisci tutti i campi richiesti.</div>';
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Le password non corrispondono</div>';
+            return;
+        }
+        
+        var model = {
+            username: username,
+            email: email,
+            password: password
+        };
+        
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        var token = tokenInput ? tokenInput.value : '';
+        
+        fetch('/setup/superadminpost', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            },
+            body: JSON.stringify(model)
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(result) {
+            if (result.success) {
+                resultDiv.innerHTML = '<div class="alert alert-success">SuperAdmin creato!</div>';
+                if (result.redirectUrl) {
+                    window.location.href = result.redirectUrl;
+                } else {
+                    window.location.href = '/setup/complete';
+                }
+            } else {
+                var errorMsg = result.errors && result.errors.length > 0 
+                    ? result.errors.join(', ') 
+                    : 'Errore sconosciuto';
+                resultDiv.innerHTML = '<div class="alert alert-danger">Errore: ' + errorMsg + '</div>';
+            }
+        })
+        .catch(function(err) {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Errore di connessione: ' + err.message + '</div>';
+        });
+    });
+});
+</script>

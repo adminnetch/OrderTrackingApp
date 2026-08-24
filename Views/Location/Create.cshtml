@@ -1,0 +1,91 @@
+﻿@model OrderTrackingApp.Models.Location
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">📍 Crea Nuova Location</h4>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                <input type="hidden" asp-for="CinemaOrderId" />
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="ContactFirstName" class="form-label">Nome</label>
+                        <input asp-for="ContactFirstName" class="form-control" />
+                        <span asp-validation-for="ContactFirstName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ContactLastName" class="form-label">Cognome</label>
+                        <input asp-for="ContactLastName" class="form-control" />
+                        <span asp-validation-for="ContactLastName" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="ContactPhone" class="form-label">Telefono</label>
+                        <input asp-for="ContactPhone" class="form-control" />
+                        <span asp-validation-for="ContactPhone" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ContactEmail" class="form-label">Email</label>
+                        <input asp-for="ContactEmail" class="form-control" />
+                        <span asp-validation-for="ContactEmail" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="LocationName" class="form-label">Nome Location</label>
+                        <input asp-for="LocationName" class="form-control" />
+                        <span asp-validation-for="LocationName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="LocationType" class="form-label">Tipo di Location</label>
+                        <select asp-for="LocationType" class="form-select">
+                            <option value="">Seleziona</option>
+                            <option value="Interno">Interno</option>
+                            <option value="Esterno">Esterno</option>
+                            <option value="Interno/Esterno">Interno/Esterno</option>
+                        </select>
+                        <span asp-validation-for="LocationType" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Address" class="form-label">Indirizzo</label>
+                    <input asp-for="Address" class="form-control" />
+                    <span asp-validation-for="Address" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">Descrizione</label>
+                    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Description" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="GoogleMapsLink" class="form-label">Link Google Maps</label>
+                    <input asp-for="GoogleMapsLink" class="form-control" />
+                    <span asp-validation-for="GoogleMapsLink" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="CartellaFotoLocation" class="form-label">Cartella Foto Location</label>
+                    <input asp-for="CartellaFotoLocation" class="form-control" />
+                    <span asp-validation-for="CartellaFotoLocation" class="text-danger small"></span>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-success">💾 Salva</button>
+                    <a asp-controller="Cinema" asp-action="Dashboard" asp-route-id="@Model.CinemaOrderId" class="btn btn-outline-secondary">↩️ Annulla</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

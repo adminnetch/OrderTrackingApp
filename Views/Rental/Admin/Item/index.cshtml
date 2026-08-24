@@ -1,0 +1,44 @@
+@model IEnumerable<OrderTrackingApp.Models.RentalItem>
+@using OrderTrackingApp.Models
+
+@{
+    ViewData["Title"] = "Gestione oggetti";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<a asp-action="Create" class="btn btn-primary mb-3">➕ Aggiungi nuovo oggetto</a>
+
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Disponibilità</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Category?.Name</td>
+                <td>
+                    @if (item.IsAvailable)
+                    {
+                        <span class="badge bg-success">Disponibile</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Non disponibile</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Modifica</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Elimina</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

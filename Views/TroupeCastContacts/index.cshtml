@@ -1,0 +1,55 @@
+@model IEnumerable<OrderTrackingApp.Models.TroupeCastContact>
+
+@{
+    // prendo projectId da ViewBag, come fa il controller
+    var projectId = (int)ViewBag.ProjectId;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Contatti</h2>
+    <div>
+        <a asp-action="Create" asp-route-projectId="@projectId" class="btn btn-primary">
+            Nuovo Contatto
+        </a>
+        <a asp-action="ExportPdf" asp-route-projectId="@projectId" class="btn btn-outline-secondary">
+            Esporta PDF
+        </a>
+    </div>
+</div>
+
+<table class="table table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Nome</th>
+            <th>Cognome</th>
+            <th>Ruolo</th>
+            <th>Telefono</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            foreach (var c in Model)
+            {
+                <tr>
+                    <td>@c.FirstName</td>
+                    <td>@c.LastName</td>
+                    <td>@c.Role</td>
+                    <td>@c.PhoneNumber</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-info">Dettaglio</a>
+                        <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-warning">Modifica</a>
+                        <a asp-action="Delete" asp-route-id="@c.Id" class="btn btn-sm btn-danger">Elimina</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="5" class="text-center">Nessun contatto presente.</td>
+            </tr>
+        }
+    </tbody>
+</table>

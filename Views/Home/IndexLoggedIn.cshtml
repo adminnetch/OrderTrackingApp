@@ -1,0 +1,31 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="container text-center mt-5">
+    <h1 class="display-4">Benvenuto, @User.Identity?.Name!</h1>
+    <p class="lead">Gestisci i tuoi ordini e tieni tutto sotto controllo.</p>
+
+    <!-- Bottoni Responsivi -->
+    <div class="row mt-5 justify-content-center">
+        <!-- Prima riga: Bottoni Blu e Rosso -->
+        <div class="col-lg-5 col-md-6 col-sm-12 mb-3">
+            <a href="/order" class="btn btn-primary btn-lg w-100 py-3">Vai agli Ordini</a>
+        </div>
+
+        <div class="row mt-5 justify-content-center">
+            <div class="col-lg-5 col-md-6 col-sm-12 mb-3">
+                <a href="/cinema" class="btn btn-danger btn-lg w-100 py-3">Vai ai Progetti</a>
+            </div>
+        </div>
+
+    <div class="row justify-content-center">
+        <!-- Seconda riga: Bottoni Verde e Giallo -->
+        <div class="col-lg-5 col-md-6 col-sm-12 mb-3">
+            <a href="https://intranet.projectcesare.ch/index.php/apps/files/files" class="btn btn-success btn-lg w-100 py-3" target="_blank">Accedi al Drive</a>
+        </div>
+        <div class="col-lg-5 col-md-6 col-sm-12 mb-3">
+            <a href="https://projectcesare.ch/wp-admin" class="btn btn-warning btn-lg w-100 py-3" target="_blank">Site Admin Access</a>
+        </div>
+    </div>
+</div>

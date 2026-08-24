@@ -1,0 +1,58 @@
+﻿@model IEnumerable<OrderTrackingApp.Models.Location>
+
+@{
+    ViewData["Title"] = "Gestione Location";
+    var cinemaOrderId = ViewBag.CinemaOrderId ?? 0;
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Location del Progetto</h2>
+
+    <div class="mb-3">
+        <a asp-action="Create" asp-route-cinemaOrderId="@cinemaOrderId" class="btn btn-success">
+            + Aggiungi Location
+        </a>
+        <a asp-controller="cinema" asp-action="dashboard" asp-route-id="@cinemaOrderId" class="btn btn-secondary ms-2">
+            Torna al Progetto
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">Nessuna location registrata per questo progetto.</div>
+    }
+    else
+    {
+        <table class="table table-bordered table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Nome Location</th>
+                    <th>Tipo</th>
+                    <th>Contatto</th>
+                    <th>Email</th>
+                    <th>Creata da</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var location in Model)
+                {
+                    <tr>
+                        <td>@location.LocationName</td>
+                        <td>@location.LocationType</td>
+                        <td>@location.ContactFirstName @location.ContactLastName</td>
+                        <td>@location.ContactEmail</td>
+                        <td>@location.CreatedBy</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@location.Id" class="btn btn-sm btn-info">Dettagli</a>
+                            <a asp-action="Edit" asp-route-id="@location.Id" class="btn btn-sm btn-warning">Modifica</a>
+                            <form asp-action="Delete" asp-route-id="@location.Id" method="post" class="d-inline" onsubmit="return confirm('Eliminare questa location?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Elimina</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

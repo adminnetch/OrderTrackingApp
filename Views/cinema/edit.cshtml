@@ -1,0 +1,92 @@
+﻿@model OrderTrackingApp.Models.CinemaOrder
+
+@{
+    ViewData["Title"] = "Modifica Progetto";
+}
+
+<h1 class="mb-4">Modifica Progetto</h1>
+
+<form asp-action="Edit" method="post" class="needs-validation" novalidate enctype="multipart/form-data">
+    <div class="form-group mb-3">
+        <label for="Title" class="form-label">Nome Progetto</label>
+        <input asp-for="Title" class="form-control" placeholder="Inserisci il nome del progetto" required />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="Director" class="form-label">Regista</label>
+        <input asp-for="Director" class="form-control" placeholder="Inserisci il nome del Regista" required />
+        <span asp-validation-for="Director" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="Produder" class="form-label">Produttore</label>
+        <input asp-for="Producer" class="form-control" placeholder="Inserisci il nome del Produttore" required />
+        <span asp-validation-for="Producer" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="AssProduder" class="form-label">Ass. Produzione</label>
+        <input asp-for="AssProducer" class="form-control" placeholder="Inserisci dell'Ass. Produzione'" required />
+        <span asp-validation-for="AssProducer" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="DoP" class="form-label">Direttore di Fotografia</label>
+        <input asp-for="DoP" class="form-control" placeholder="Inserisci il nome del Direttorei di Fotografia" />
+        <span asp-validation-for="DoP" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="DriveLink" class="form-label">Link Cartella Drive</label>
+        <input asp-for="DriveLink" class="form-control" placeholder="Inserisci il link del Drive" />
+        <span asp-validation-for="DriveLink" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="Status" class="form-label">Stato Progetto</label>
+        <select asp-for="Status" class="form-control">
+                <option value="Ricerca Fondi">Ricerca Fondi</option>
+                <option value="Scrittura">Scrittura</option>
+            <optgroup label="Pre-Produzione">
+                <option value="Start Pre-Produzione">Start Pre-Produzione</option>
+                <option value="Ricerca Cast e Troupe">Ricerca Cast e Troupe</option>
+                <option value="Stesura Contratti">Stesura Contratti</option>
+                <option value="Spoglio Sceneggiatura">Spoglio Sceneggiatura</option>
+                <option value="Piano di Lavorazione">Piano di Lavorazione</option>
+                <option value="Elaborazione del Concept Visvo">Elaborazione del Concept Visivo</option>
+            </optgroup>
+            <optgroup label="Produzione">
+                <option value="Produzione del contenuto">Produzione del contenuto</option>
+            </optgroup>
+            <optgroup label="Post-Produzione">
+                <option value="Inizio Post-Produzione">Inizio Post-Produzione</option>
+                <option value="Prima visione del girato">Prima visione del Girato</option>
+                <option value="Montaggio">Montaggio</option>
+                <option value="Revisione Finale">Revisione Finale</option>
+                <option value="Color">Color</option>
+                <option value="Sonorizzazione">Sonorizzazione</option>
+                <option value="Last Look">Last Look</option>
+                <option value="Chiusura Post-Produzione">Chiusura Post-Produzione</option>
+            </optgroup>
+            <optgroup label="Distribuzione">
+                <option value="Acccordi con Distributori">Acccordi con Distributori</option>
+                <option value="Sponsorizzazione">Sponsorizzazione</option>
+                <option value="Emissione del Prodotto">Emissione del Prodotto</option>
+            </optgroup>
+        </select>
+        <span asp-validation-for="Status" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-4">
+        <label for="Notes" class="form-label">Note di Avanzamento</label>
+        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Eventuali note di avanzamento"></textarea>
+        <span asp-validation-for="Notes" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-primary me-2">Salva Modifiche</button>
+        <a asp-action="index" class="btn btn-secondary">Annulla</a>
+    </div>
+</form>

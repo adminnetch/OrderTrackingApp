@@ -1,0 +1,11 @@
+@using OrderTrackingApp.Models
+@model TroupeCastContact
+
+
+<h3>Sei sicuro di voler eliminare @Model.FirstName @Model.LastName?</h3>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Conferma eliminazione</button>
+    <a asp-action="Index" asp-route-projectId="@Model.CinemaOrderId" class="btn btn-secondary">Annulla</a>
+</form>

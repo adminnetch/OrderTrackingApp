@@ -1,0 +1,50 @@
+@model OrderTrackingApp.Controllers.SetupWizardViewModel
+@{
+    ViewData["Title"] = "Setup Wizard";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2>OrderTrackingApp Setup</h2>
+                </div>
+                <div class="card-body">
+                    <h4>Benvenuto nel Wizard di Configurazione</h4>
+                    <p>Questo wizard ti guiderà alla configurazione iniziale dell'applicazione.</p>
+                    
+                    <hr />
+                    
+                    <h5>Scegli il profilo di installazione:</h5>
+                    
+                    <div class="list-group mt-3">
+                        <a href="/setup/prerequisites" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Express (SQLite)</h5>
+                                <small>Consigliato</small>
+                            </div>
+                            <p class="mb-1">Database locale leggero. Ideale per test, sviluppo, o piccoli team.</p>
+                        </a>
+                        <a href="/setup/prerequisites" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Production (MySQL/MariaDB)</h5>
+                            </div>
+                            <p class="mb-1">Database production. Ideale per ambienti di produzione.</p>
+                        </a>
+                    </div>
+                    
+                    @if (Model.CurrentState != OrderTrackingApp.Models.InstallationState.NotStarted)
+                    {
+                        <div class="alert alert-warning mt-3">
+                            <strong>Stato attuale:</strong> @Model.CurrentState
+                            <br />
+                            <small>Step: @Model.CurrentStep</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

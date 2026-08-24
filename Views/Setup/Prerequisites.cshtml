@@ -1,0 +1,49 @@
+@model OrderTrackingApp.Controllers.PrerequisiteCheckViewModel
+@{
+    ViewData["Title"] = "Prerequisites";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>Prerequisiti di Sistema</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Verifica prerequisiti...</h5>
+                    
+                    <form method="post" action="/setup/prerequisitespost">
+                        
+                        <div class="mt-3">
+                            <div class="alert alert-info">
+                                <strong>.NET Version:</strong> @Model.DotnetVersion
+                                <br />
+                                @if (Model.IsDotnetValid)
+                                {
+                                    <span>✓ Versione compatibile</span>
+                                }
+                                else
+                                {
+                                    <span>⚠ Versione non compatibile. Richiesto .NET 6+</span>
+                                }
+                            </div>
+                        </div>
+                        
+                        @if (Model.AllChecksPassed)
+                        {
+                            <button type="submit" class="btn btn-success">Continua</button>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                I prerequisiti non sono soddisfatti. Contatta l'amministratore.
+                            </div>
+                        }
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

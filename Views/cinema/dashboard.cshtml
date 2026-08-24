@@ -1,0 +1,108 @@
+@model OrderTrackingApp.Models.CinemaOrder
+@{
+    ViewData["Title"] = "Dashboard Progetto";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Titolo pagina -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white py-2">
+            <h2 class="h5 m-0">📊 Dashboard Progetto</h2>
+        </div>
+        <div class="card-body">
+            <div class="row gx-4">
+                <!-- Dettagli progetto -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h4 class="card-title">@Model.ProjectNumber - @Model.Title</h4>
+                            <dl class="row mb-3">
+                                <dt class="col-sm-4">Regista:</dt>
+                                <dd class="col-sm-8">@Model.Director</dd>
+
+                                <dt class="col-sm-4">Produttore:</dt>
+                                <dd class="col-sm-8">@Model.Producer</dd>
+
+                                <dt class="col-sm-4">Direttore Fotografia:</dt>
+                                <dd class="col-sm-8">@Model.DoP</dd>
+
+                                <dt class="col-sm-4">Assistente Produzione:</dt>
+                                <dd class="col-sm-8">@Model.AssProducer</dd>
+
+                                <dt class="col-sm-4">Stato:</dt>
+                                <dd class="col-sm-8">@Model.Status</dd>
+                            </dl>
+                            <p><strong>Note:</strong> @Model.Notes</p>
+                            
+                            <small class="text-muted">
+                                Creato il @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm") da @Model.CreatedBy<br />
+                                Modificato il @Model.LastUpdated.ToString("dd/MM/yyyy HH:mm") da @Model.UpdatedBy
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Azioni principali -->
+                <div class="col-lg-4 d-flex flex-column gap-3 mb-4">
+                    <a asp-action="Edit"
+                       asp-route-id="@Model.Id"
+                       class="btn btn-warning w-100">
+                        ✏️ Modifica progetto
+                    </a>
+
+                    <form asp-action="Delete"
+                          asp-route-id="@Model.Id"
+                          method="post"
+                          class="w-100"
+                          onsubmit="return confirm('Sei sicuro di voler eliminare questo progetto?');">
+                        <button type="submit" class="btn btn-danger w-100">🗑️ Elimina progetto</button>
+                    </form>
+
+                    <a asp-controller="ODG"
+                       asp-action="Index"
+                       asp-route-cinemaOrderId="@Model.Id"
+                       class="btn btn-primary w-100">
+                        📋 Gestisci ODG
+                    </a>
+
+                    <a asp-controller="Location"
+                       asp-action="Index"
+                       asp-route-cinemaOrderId="@Model.Id"
+                       class="btn btn-secondary w-100">
+                        📍 Gestisci Location
+                    </a>
+
+                    <a asp-controller="CentroCosto"
+                       asp-action="Index"
+                       asp-route-cinemaOrderId="@Model.Id"
+                       class="btn btn-success w-100">
+                        💰 Finanze
+                    </a>
+
+                    <a asp-controller="FileManager"
+                       asp-action="Index"
+                       asp-route-projectId="@Model.Id"
+                       class="btn btn-info w-100">
+                        📁 File Manager
+                    </a>
+                    <a asp-controller="TroupeCastContacts"
+                       asp-action="Index"
+                       asp-route-projectId="@Model.Id"
+                       class="btn btn-dark w-100">
+                        👤 Contatti
+                    </a>
+                </div>
+            </div>
+
+            <!-- Torna all'elenco progetti -->
+            <div class="text-center mt-2">
+                <a asp-controller="Cinema"
+                   asp-action="Index"
+                   class="btn btn-outline-primary">
+                    ↩️ Torna ai Progetti
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

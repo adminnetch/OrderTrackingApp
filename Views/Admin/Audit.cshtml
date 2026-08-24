@@ -1,0 +1,173 @@
+@{
+    ViewData["Title"] = "Audit Azioni Utente";
+    var auditLogs = ViewBag.AuditLogs as List<AuditLog> ?? new List<AuditLog>();
+    var selectedEventType = ViewBag.FilterEventType as string ?? "";
+    var selectedUsername = ViewBag.FilterUsername as string ?? "";
+    var eventTypes = ViewBag.EventTypes as string[] ?? new string[] { };
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4 border-bottom pb-3">Audit Azioni Utente</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-shield"></i> Tracciamento</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0 small text-muted">
+                        Il sistema traccia eventi di sicurezza e operazioni amministrative.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-calendar-range"></i> Ritenzione</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0 small text-muted">
+                        I dati di audit sono conservati per max 90 giorni.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Accesso</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0 small text-muted">
+                        Accesso limitato a Admin/SuperAdmin.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-shield-x"></i> Privacy</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0 small text-muted">
+                        Password e token non sono mai tracciati.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtri</h5>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <a href="/Admin/Audit" class="btn btn-sm btn-outline-secondary @(string.IsNullOrEmpty(selectedEventType) ? "active" : "")">
+                                Tutti
+                            </a>
+                            @foreach (var et in eventTypes)
+                            {
+                                <a href="/Admin/Audit?eventType=@et" class="btn btn-sm btn-outline-@(et.Contains("Failed") ? "danger" : et.Contains("Deleted") ? "danger" : "primary") @(selectedEventType == et ? "active" : "")">
+                                    @et
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (auditLogs.Count == 0)
+                    {
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i> Nessun evento di audit disponibile. Il sistema di audit è operativo ma non ha ancora registrato eventi.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-sm table-striped mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 140px;">Timestamp</th>
+                                        <th style="width: 100px;">Evento</th>
+                                        <th style="width: 100px;">Utente</th>
+                                        <th style="width: 100px;">Azione</th>
+                                        <th>Entity</th>
+                                        <th style="width: 80px;">Stato</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in auditLogs)
+                                    {
+                                        <tr class="@(!log.Success ? "table-danger" : "")">
+                                            <td><small>@log.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss")</small></td>
+                                            <td><span class="badge bg-secondary">@log.EventType</span></td>
+                                            <td><small>@(log.Username ?? "-")</small></td>
+                                            <td><small>@log.Action</small></td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(log.EntityName))
+                                                {
+                                                    <small>@log.EntityName@(log.EntityId != null ? ":" + log.EntityId : "")</small>
+                                                }
+                                                else
+                                                {
+                                                    <small>-</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (log.Success)
+                                                {
+                                                    <span class="badge bg-success"><i class="bi bi-check"></i></span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger"><i class="bi bi-x"></i></span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Note GDPR / LPD</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2 small">
+                        <strong>Dati tracciati:</strong> login, logout, tentativi falliti, creazione/modifica/eliminazione utenti, modifiche permessi, test connessione.
+                    </p>
+                    <p class="mb-2 small">
+                        <strong>NON tracciati:</strong> password, token di sessione, cookie, connection string complete, dati personali sensibili non necessari.
+                    </p>
+                    <p class="mb-0 small text-muted">
+                        I dati di audit sono conservati per un periodo limitato (max 90 giorni) e accessibili solo agli amministratori. Non sono condivisi con terze parti.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="/Admin" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Torna alla Dashboard
+        </a>
+    </div>
+</div>

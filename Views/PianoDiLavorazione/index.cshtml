@@ -1,0 +1,41 @@
+@model IEnumerable<OrderTrackingApp.Models.PianoDiLavorazione>
+
+@{
+    ViewData["Title"] = "Piani di Lavorazione";
+}
+
+<h2>Piani di Lavorazione</h2>
+
+<p>
+    <a asp-action="Create" asp-route-cinemaOrderId="@ViewBag.CinemaOrderId" class="btn btn-primary">➕ Crea nuovo Piano di Lavorazione</a>
+</p>
+
+<table class="table table-bordered table-hover table-responsive">
+    <thead>
+        <tr>
+            <th>Titolo</th>
+            <th>Nome Produzione</th>
+            <th>Regista</th>
+            <th>Produttore</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var piano in Model)
+    {
+        <tr>
+            <td>@piano.TitoloCortometraggio</td>
+            <td>@piano.NomeProduzione</td>
+            <td>@piano.Regista</td>
+            <td>@piano.Produttore</td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@piano.Id" class="btn btn-sm btn-warning">✏️ Modifica</a>
+                <a asp-action="ExportPDF" asp-route-id="@piano.Id" class="btn btn-sm btn-info">📄 Esporta PDF</a>
+                <form asp-action="Delete" asp-route-id="@piano.Id" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Sei sicuro di voler eliminare questo piano?')">🗑️ Elimina</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

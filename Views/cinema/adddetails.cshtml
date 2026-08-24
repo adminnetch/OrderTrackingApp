@@ -1,0 +1,50 @@
+﻿
+@model OrderTrackingApp.Models.ODGOrder
+
+
+<h2>Aggiungi Dettagli per ODG @Model.Id</h2>
+
+<!-- Form per TroupeOrari -->
+<form asp-action="AddTroupeOrari" method="post">
+    <input type="hidden" name="odgOrderId" value="@Model.Id" />
+
+    <div>
+        <label>Ruolo</label>
+        <input type="text" name="troupeOrari[0].Ruolo" required />
+    </div>
+
+    <div>
+        <label>Orario</label>
+        <input type="text" name="troupeOrari[0].Orario" required />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Aggiungi TroupeOrari</button>
+</form>
+
+<!-- Form per Trasporti -->
+<form asp-action="AddTrasporti" method="post">
+    <input type="hidden" name="odgOrderId" value="@Model.Id" />
+
+    <div>
+        <label>Auto</label>
+        <input type="text" name="trasporti[0].Auto" required />
+    </div>
+
+    <div>
+        <label>Chi</label>
+        <input type="text" name="trasporti[0].Chi" required />
+    </div>
+
+    <div>
+        <label>Dove</label>
+        <input type="text" name="trasporti[0].Dove" required />
+    </div>
+
+    <div>
+        <label>Ora</label>
+        <input type="time" name="trasporti[0].Ora" required />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Aggiungi Trasporti</button>
+</form>
+

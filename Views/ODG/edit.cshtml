@@ -1,0 +1,151 @@
+﻿@model OrderTrackingApp.Models.ODGOrder
+@{
+    ViewData["Title"] = "Modifica ODG";
+    var troupeContacts = ViewBag.TroupeContacts as List<OrderTrackingApp.Models.TroupeCastContact> ?? new();
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Modifica Ordine del Giorno</h2>
+
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="CinemaOrderId" />
+
+        <div class="row g-3">
+            <div class="col-md-4"><label asp-for="DayRec" class="form-label">Giorno Riprese</label><input asp-for="DayRec" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="Film" class="form-label">Film</label><input asp-for="Film" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="Regista" class="form-label">Regista</label><input asp-for="Regista" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="Produttore" class="form-label">Produttore</label><input asp-for="Produttore" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="Location" class="form-label">Location</label><input asp-for="Location" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="Meteo" class="form-label">Meteo</label><input asp-for="Meteo" class="form-control" /></div>
+            <div class="col-md-12"><label asp-for="SceneDaGirare" class="form-label">Scene da Girare</label><input asp-for="SceneDaGirare" class="form-control" /></div>
+            <div class="col-md-12"><label asp-for="Catering" class="form-label">Catering</label><input asp-for="Catering" class="form-control" /></div>
+
+            <div class="col-md-2"><label asp-for="ProntiAGirare" class="form-label">Convocazione sul Set</label><input asp-for="ProntiAGirare" type="time" class="form-control" /></div>
+            <div class="col-md-2"><label asp-for="InizioRiprese" class="form-label">Pronti a girare</label><input asp-for="InizioRiprese" type="time" class="form-control" /></div>
+            <div class="col-md-2"><label asp-for="PausaPranzo" class="form-label">Pausa</label><input asp-for="PausaPranzo" type="time" class="form-control" /></div>
+            <div class="col-md-2"><label asp-for="FineRiprese" class="form-label">Fine Riprese</label><input asp-for="FineRiprese" type="time" class="form-control" /></div>
+            <div class="col-md-2"><label asp-for="TermineLavorazione" class="form-label">Termine Lavorazione</label><input asp-for="TermineLavorazione" type="time" class="form-control" /></div>
+        </div>
+
+        <div class="mt-4">
+            <label asp-for="NoteProduzione" class="form-label">Note di Produzione</label>
+            <textarea asp-for="NoteProduzione" id="NoteProduzione" class="form-control rich-text"></textarea>
+        </div>
+        <div class="mt-4">
+            <label asp-for="NoteRegia" class="form-label">Note di Regia</label>
+            <textarea asp-for="NoteRegia" id="NoteRegia" class="form-control rich-text"></textarea>
+        </div>
+        <div class="mt-4">
+            <label asp-for="InformazioniUtili" class="form-label">Informazioni Utili</label>
+            <textarea asp-for="InformazioniUtili" id="InformazioniUtili" class="form-control rich-text"></textarea>
+        </div>
+
+        <!-- Tabelle Dinamiche -->
+        <hr />
+        <h4>Troupe Orari</h4>
+        <table id="troupeTable" class="table">
+            <thead><tr><th>Nome</th><th>Ruolo</th><th>Orario</th><th></th></tr></thead>
+            <tbody>
+                @for (int i = 0; i < Model.TroupeOrari.Count; i++)
+                {
+                    var current = Model.TroupeOrari[i];
+                    <tr>
+                        <td>
+                            <input type="hidden" name="TroupeOrari[@i].Id" value="@current.Id" />
+                            <select name="TroupeOrari[@i].Nome" class="form-select" required>
+                                <option value="">-- seleziona --</option>
+                                @foreach (var c in troupeContacts)
+                                {
+                                    var fullName = $"{c.FirstName} {c.LastName}";
+                                    var selected = fullName == current.Nome ? "selected" : "";
+                                    @Html.Raw($"<option value=\"{fullName}\" data-role=\"{c.Role}\" {selected}>{fullName}</option>")
+                                }
+                            </select>
+                        </td>
+                        <td><input type="text" name="TroupeOrari[@i].Ruolo" value="@current.Ruolo" class="form-control" readonly /></td>
+                        <td><input type="time" name="TroupeOrari[@i].Orario" value="@current.Orario" class="form-control" /></td>
+                        <td><button type="button" class="btn btn-danger remove-row">Rimuovi</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3" id="addTroupe">+ Aggiungi Troupe</button>
+
+        <h4>Convocazioni</h4>
+        <table id="convocazioniTable" class="table">
+            <thead><tr><th>Attore</th><th>PickUp</th><th>Costumi</th><th>Trucco</th><th>Pronti</th><th></th></tr></thead>
+            <tbody>
+                @for (int i = 0; i < Model.CastConvocazioni.Count; i++)
+                {
+                    var c = Model.CastConvocazioni[i];
+                    <tr>
+                        <td>
+                            <input type="text" name="CastConvocazioni[@i].Attore" value="@c.Attore" class="form-control" />
+                            <input type="hidden" name="CastConvocazioni[@i].Id" value="@c.Id" />
+                        </td>
+                        <td><input type="time" name="CastConvocazioni[@i].PickUp" value="@c.PickUp" class="form-control" /></td>
+                        <td><input type="time" name="CastConvocazioni[@i].Costume" value="@c.Costume" class="form-control" /></td>
+                        <td><input type="time" name="CastConvocazioni[@i].Trucco" value="@c.Trucco" class="form-control" /></td>
+                        <td><input type="time" name="CastConvocazioni[@i].Pronti" value="@c.Pronti" class="form-control" /></td>
+                        <td><button type="button" class="btn btn-danger remove-row">Rimuovi</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3" id="addConvocazione">+ Aggiungi Convocazione</button>
+
+        <h4>Trasporti</h4>
+        <table id="trasportiTable" class="table">
+            <thead><tr><th>Auto</th><th>Chi</th><th>Dove</th><th>Ora</th><th></th></tr></thead>
+            <tbody>
+                @for (int i = 0; i < Model.Trasporti.Count; i++)
+                {
+                    var t = Model.Trasporti[i];
+                    <tr>
+                        <td>
+                            <input type="text" name="Trasporti[@i].Auto" value="@t.Auto" class="form-control" />
+                            <input type="hidden" name="Trasporti[@i].Id" value="@t.Id" />
+                        </td>
+                        <td><input type="text" name="Trasporti[@i].Chi" value="@t.Chi" class="form-control" /></td>
+                        <td><input type="text" name="Trasporti[@i].Dove" value="@t.Dove" class="form-control" /></td>
+                        <td><input type="time" name="Trasporti[@i].Ora" value="@t.Ora" class="form-control" /></td>
+                        <td><button type="button" class="btn btn-danger remove-row">Rimuovi</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3" id="addTrasporto">+ Aggiungi Trasporto</button>
+
+        <h4>Contatti Importanti</h4>
+        <table id="contattiTable" class="table">
+            <thead><tr><th>Nome</th><th>Ruolo</th><th>Email/Telefono</th><th></th></tr></thead>
+            <tbody>
+                @for (int i = 0; i < Model.Contatti.Count; i++)
+                {
+                    var ct = Model.Contatti[i];
+                    <tr>
+                        <td>
+                            <input type="text" name="Contatti[@i].Nome" value="@ct.Nome" class="form-control" />
+                            <input type="hidden" name="Contatti[@i].Id" value="@ct.Id" />
+                        </td>
+                        <td><input type="text" name="Contatti[@i].Ruolo" value="@ct.Ruolo" class="form-control" /></td>
+                        <td><input type="text" name="Contatti[@i].Email" value="@ct.Email" class="form-control" /></td>
+                        <td><button type="button" class="btn btn-danger remove-row">Rimuovi</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-4" id="addContatto">+ Aggiungi Contatto</button>
+
+        <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-success">Salva</button>
+            <a asp-controller="Cinema" asp-action="Dashboard" asp-route-id="@Model.CinemaOrderId" class="btn btn-secondary">Annulla</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/odg.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+}

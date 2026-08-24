@@ -1,0 +1,155 @@
+@model User
+@using OrderTrackingApp.Models
+@{
+    ViewData["Title"] = $"Modifica Permessi per {Model.VisualName}";
+    var allPerms    = ViewBag.AllPermissions       as List<Permission>      ?? new();
+    var userPermIds = ViewBag.UserPermissionIds    as List<int>             ?? new();
+    var progetti    = ViewBag.Progetti             as List<CinemaOrder>     ?? new();
+    var projPerms   = ViewBag.UserProjectPermissions as List<ProjectPermission> ?? new();
+
+    // Categorie globali
+    var globalCats = allPerms
+        .GroupBy(p => p.Name.Split('.')[0])
+        .OrderBy(g => g.Key)
+        .ToDictionary(g => g.Key, g => g.ToList());
+
+    // Categorie progetto
+    var projectCats = new Dictionary<string, Func<CinemaOrder, IEnumerable<Permission>>> {
+        ["Progetti"] = _ => allPerms.Where(p => p.Name.StartsWith("Progetti.")),
+        ["ODG"]      = _ => allPerms.Where(p => p.Name.StartsWith("ODG.")),
+        ["Finanze"]  = _ => allPerms.Where(p => p.Name.StartsWith("Finanze.")),
+        ["Location"] = _ => allPerms.Where(p => p.Name.StartsWith("Location.")),
+        ["File"] = _ => allPerms.Where(p => p.Name.StartsWith("File.")),
+        ["Contatti"] = _ => allPerms.Where(p => p.Name.StartsWith("Contatti.")),
+       // ["Piani"]    = _ => allPerms.Where(p => p.Name.StartsWith("Piani.")),
+    };
+}
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>@ViewData["Title"]</title>
+  <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+  <div class="container py-4">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+    <form method="post" asp-action="EditPermessiPost">
+      <input type="hidden" name="userId" value="@Model.Id" />
+
+      <h3>1) Permessi Globali</h3>
+      @foreach(var cat in globalCats)
+      {
+          var box = $"glob_{cat.Key}";
+          <div class="card mb-3 shadow-sm">
+            <div class="card-header d-flex justify-content-between">
+              <strong>@cat.Key</strong>
+              <button type="button"
+                      class="btn btn-sm btn-outline-primary toggle-btn"
+                      data-target="@box">
+                Mostra/Nascondi
+              </button>
+            </div>
+            <div id="@box" class="card-body" style="display:none">
+              <div class="border rounded p-3">
+                @foreach(var perm in cat.Value)
+                {
+                    var isChk = userPermIds.Contains(perm.Id) ? "checked" : "";
+                    var safeId = perm.Name.Replace(".", "_");
+                    <div class="form-check mb-2">
+                      <input class="form-check-input"
+                             type="checkbox"
+                             name="selectedPermissions"
+                             value="@perm.Id"
+                             id="glob_@safeId"
+                             @isChk />
+                      <label class="form-check-label" for="glob_@safeId">
+                        <strong>@perm.Name</strong> – @perm.Description
+                      </label>
+                    </div>
+                }
+              </div>
+            </div>
+          </div>
+      }
+
+      <h3 class="mt-4">2) Permessi per Progetto</h3>
+
+@foreach(var pg in progetti)
+{
+    var projBox = $"proj_{pg.Id}";
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header d-flex justify-content-between">
+        <strong>@pg.Title</strong>
+        <button type="button"
+                class="btn btn-sm btn-outline-primary toggle-btn"
+                data-target="@projBox">
+          Mostra/Nascondi
+        </button>
+      </div>
+      <div id="@projBox" class="card-body" style="display:none">
+        <div class="row">
+          @foreach(var cat in projectCats)
+          {
+              var catBox = $"{projBox}_{cat.Key}";
+              <div class="col-12 mb-3"><!-- col-12 per full‐width -->
+                <div class="card">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>@cat.Key</strong>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary toggle-btn"
+                            data-target="@catBox">
+                      Mostra/Nascondi
+                    </button>
+                  </div>
+                  <div id="@catBox" class="card-body" style="display:none">
+                    @foreach(var perm in cat.Value(pg))
+                    {
+                        var tag   = $"{pg.Id}:{perm.Name}";
+                        var isChk = projPerms.Any(pp => pp.ProjectId == pg.Id && pp.PermissionName == perm.Name)
+                                    ? "checked" : "";
+                        var safeId = perm.Name.Replace(".", "_");
+                        <div class="form-check mb-2">
+                          <input class="form-check-input"
+                                 type="checkbox"
+                                 name="projectPermissions"
+                                 value="@tag"
+                                 id="pp_@(pg.Id)_@safeId"
+                                 @isChk />
+                          <label class="form-check-label" for="pp_@(pg.Id)_@safeId">
+                            <strong>@perm.Name</strong> – @perm.Description
+                          </label>
+                        </div>
+                    }
+                  </div>
+                </div>
+              </div>
+          }
+        </div>
+      </div>
+    </div>
+}
+
+
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-success">Salva Permessi</button>
+        <a asp-action="Users" class="btn btn-secondary ms-2">Annulla</a>
+      </div>
+    </form>
+  </div>
+
+  <script src="/lib/jquery/dist/jquery.min.js"></script>
+  <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tgt = document.getElementById(btn.dataset.target);
+        tgt.style.display = (tgt.style.display === 'block') ? 'none' : 'block';
+      });
+    });
+  </script>
+</body>
+</html>
