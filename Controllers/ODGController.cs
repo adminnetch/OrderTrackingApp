@@ -399,8 +399,6 @@ namespace OrderTrackingApp.Controllers
                                                  .Border(1).BorderColor(Colors.Black)
                                                  .Padding(6)
                                                  .Text(cells[c] ?? "");
-                            if (emailColumnNoWrap && c == cells.Length - 1)
-                                textBlock.WrapAnywhere();
                         }
                     }
                 });

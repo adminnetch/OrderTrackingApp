@@ -202,7 +202,7 @@ namespace OrderTrackingApp.Controllers
 
         [HttpPost]
         [HasPermission("Admin.Access")]
-        public async Task<IActionResult> TestNewConnection(string provider, string path, string host, int port, string databaseName, string username, string password, bool ssl)
+        public IActionResult TestNewConnection(string provider, string path, string host, int port, string databaseName, string username, string password, bool ssl)
         {
             try
             {
