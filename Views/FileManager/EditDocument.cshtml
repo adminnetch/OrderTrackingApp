@@ -2,9 +2,9 @@
 @{
     Layout = null;
 
-    string configJson = ViewBag.ConfigJson as string;
-    string token = ViewBag.Token as string; // 👈 MANCAVA QUESTO
-    string callbackToken = ViewBag.CallbackToken as string;
+    string configJson = ViewBag.ConfigJson as string ?? "";
+    string token = ViewBag.Token as string ?? "" ;
+    string callbackToken = ViewBag.CallbackToken as string ?? "";
 }
 
 <!DOCTYPE html>

@@ -14,8 +14,8 @@
     {
         @Html.AntiForgeryToken()
         @Html.HiddenFor(m => m.CinemaOrderId)
-        @Html.HiddenFor(m => m.EmergencyContact.Id)
-        @Html.HiddenFor(m => m.EmergencyContact.TroupeCastContactId)
+        @Html.HiddenFor(m => m.EmergencyContact!.Id)
+        @Html.HiddenFor(m => m.EmergencyContact!.TroupeCastContactId)
 
         <!-- ▶️ Dati Personali e Ruolo -->
 <div class="card mb-4 shadow-sm">
@@ -155,7 +155,7 @@
                     <div class="col-md-6">
                         <label asp-for="EmergencyContact.Name" class="form-label"></label>
                         <input asp-for="EmergencyContact.Name" class="form-control" required />
-                        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.EmergencyContact.Name)</div>
+                        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.EmergencyContact!.Name)</div>
                     </div>
                     <div class="col-md-3">
                         <label asp-for="EmergencyContact.Relation" class="form-label"></label>
@@ -164,7 +164,7 @@
                     <div class="col-md-3">
                         <label asp-for="EmergencyContact.PhoneNumber" class="form-label"></label>
                         <input asp-for="EmergencyContact.PhoneNumber" class="form-control" required autocomplete="tel" />
-                        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.EmergencyContact.PhoneNumber)</div>
+                        <div class="invalid-feedback">@Html.ValidationMessageFor(m => m.EmergencyContact!.PhoneNumber)</div>
                     </div>
                 </div>
             </div>
