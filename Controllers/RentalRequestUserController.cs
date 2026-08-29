@@ -100,10 +100,10 @@ namespace OrderTrackingApp.Controllers
             Console.WriteLine(">>> DATE IN: " + request.CheckIn);
             Console.WriteLine(">>> DATE OUT: " + request.CheckOut);
 
-            request.Status = RentalStatus.Pending;
+                        request.Status = RentalStatus.Pending;
             request.IsEditableByUser = true;
 
-            request.RequestItems = selectedItemIds.Select(id => new RentalRequestItem
+            request.RequestItems = (selectedItemIds ?? new List<int>()).Select(id => new RentalRequestItem
             {
                 RentalItemId = id
             }).ToList();
