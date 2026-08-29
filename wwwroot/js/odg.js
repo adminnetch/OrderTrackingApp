@@ -2,43 +2,71 @@
 
 // 🔹 Inizializzazione quando il DOM è pronto
 document.addEventListener("DOMContentLoaded", function () {
-  // Attiva i campi Rich Text (ckeditor)
-  document.querySelectorAll(".rich-text").forEach(editor => {
-    ClassicEditor.create(editor).catch(error => console.error(error));
-  });
+  console.log("✅ ODG script caricato");
 
-  // Prende l’ID del progetto (serve per caricare i contatti troupe)
+  // Attiva i campi Rich Text (ckeditor)
+  // Attiva i campi Rich Text (ckeditor) - gestito in modo sicuro
+if (typeof ClassicEditor !== 'undefined') {
+  document.querySelectorAll(".rich-text").forEach(editor => {
+    ClassicEditor.create(editor).catch(error => console.warn("⚠️ CKEditor non inizializzato:", error));
+  });
+} else {
+  console.warn("⚠️ CKEditor non disponibile (CSP blocca il CDN). I campi testo funzioneranno come textarea normali.");
+}
+
+  // Prende l'ID del progetto (serve per caricare i contatti troupe)
   const projInput = document.querySelector('input[name="CinemaOrderId"]');
   const projectId = projInput ? projInput.value : null;
+  console.log("🔑 ProjectId:", projectId);
 
-  // Listener per bottone "Aggiungi Troupe"
-  const btnTroupe = document.getElementById("addTroupe");
-  if (btnTroupe && projectId) {
-    btnTroupe.addEventListener("click", async () => {
-      if (!window.troupeContacts || !window.troupeContacts.length) {
-        try {
-          const res = await fetch(`/TroupeCastContacts/GetForProject?projectId=${projectId}`);
-          if (!res.ok) throw new Error("Fetch troupe failed");
-          window.troupeContacts = await res.json();
-        } catch (e) {
-          console.error("Errore caricamento contatti troupe:", e);
-          window.troupeContacts = [];
-        }
-      }
-      addRow("troupeTable", "TroupeOrari", window.troupeContacts);
-    });
+  // 🔹 Helper per attaccare listener in modo sicuro
+  function safeAddListener(elementId, handler) {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.addEventListener("click", handler);
+      console.log(`✅ Listener attaccato a ${elementId}`);
+    } else {
+      console.warn(`⚠️ Elemento non trovato: ${elementId}`);
+    }
   }
 
+  // Listener per bottone "Aggiungi Troupe"
+  safeAddListener("addTroupe", async () => {
+    console.log("🔵 Bottone Troupe cliccato");
+    if (!window.troupeContacts || !window.troupeContacts.length) {
+      if (!projectId) {
+        alert("Errore: ID progetto mancante. Impossibile caricare i contatti.");
+        return;
+      }
+      try {
+        const res = await fetch(`/TroupeCastContacts/GetForProject?projectId=${projectId}`);
+        if (!res.ok) throw new Error("Fetch troupe failed");
+        window.troupeContacts = await res.json();
+        console.log("📋 Contatti troupe caricati:", window.troupeContacts);
+      } catch (e) {
+        console.error("Errore caricamento contatti troupe:", e);
+        alert("Errore nel caricamento dei contatti troupe. Controlla la console.");
+        window.troupeContacts = [];
+      }
+    }
+    addRow("troupeTable", "TroupeOrari", window.troupeContacts);
+  });
+
   // Listener per le altre tabelle dinamiche
-  document.getElementById("addConvocazione").addEventListener("click", () =>
-    addRow("convocazioniTable", "CastConvocazioni")
-  );
-  document.getElementById("addTrasporto").addEventListener("click", () =>
-    addRow("trasportiTable", "Trasporti")
-  );
-  document.getElementById("addContatto").addEventListener("click", () =>
-    addRow("contattiTable", "Contatti")
-  );
+  safeAddListener("addConvocazione", () => {
+    console.log("🔵 Bottone Convocazione cliccato");
+    addRow("convocazioniTable", "CastConvocazioni");
+  });
+
+  safeAddListener("addTrasporto", () => {
+    console.log("🔵 Bottone Trasporto cliccato");
+    addRow("trasportiTable", "Trasporti");
+  });
+
+  safeAddListener("addContatto", () => {
+    console.log("🔵 Bottone Contatto cliccato");
+    addRow("contattiTable", "Contatti");
+  });
 
   // 🔹 Imposta il comportamento dei <select> già presenti (Troupe)
   document.querySelectorAll("#troupeTable select").forEach(sel => {
@@ -55,7 +83,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // 🔹 Funzione generica per aggiungere righe alle tabelle
 function addRow(tableId, prefix, contacts = []) {
-  const tbody = document.getElementById(tableId).querySelector("tbody");
+  console.log(`➕ Aggiunta riga a ${tableId} con prefix ${prefix}`);
+  
+  const table = document.getElementById(tableId);
+  if (!table) {
+    console.error(`❌ Tabella non trovata: ${tableId}`);
+    return;
+  }
+  
+  const tbody = table.querySelector("tbody");
+  if (!tbody) {
+    console.error(`❌ Tbody non trovato in ${tableId}`);
+    return;
+  }
+  
   const idx = tbody.rows.length;
   const row = tbody.insertRow();
 
@@ -107,6 +148,7 @@ function addRow(tableId, prefix, contacts = []) {
     btn.addEventListener("click", () => row.remove());
     c3.appendChild(btn);
 
+    console.log(`✅ Riga aggiunta a ${tableId}`);
     return;
   }
 
@@ -164,23 +206,51 @@ function addRow(tableId, prefix, contacts = []) {
   remB.innerText = "Rimuovi";
   remB.addEventListener("click", () => row.remove());
   remC.appendChild(remB);
+
+  console.log(`✅ Riga aggiunta a ${tableId}`);
 }
 
 // 🔹 Listener globale per rimuovere righe cliccando "Rimuovi"
 document.addEventListener("click", function (e) {
   if (e.target.classList.contains("remove-row")) {
-    e.target.closest("tr").remove();
+    const row = e.target.closest("tr");
+    if (row) {
+      row.remove();
+      console.log("🗑️ Riga rimossa");
+    }
   }
 });
 
 // 🔍 Log dei dati inviati al submit (debug utile)
 document.addEventListener("DOMContentLoaded", function () {
-  const form = document.querySelector('form[asp-action="Create"], form[asp-action="Edit"]');
-  if (!form) return;
-  form.addEventListener("submit", function () {
-    const fd = new FormData(this);
+  const form = document.querySelector('form[method="post"]');
+  if (!form) {
+    console.warn("⚠️ Form non trovato");
+    return;
+  }
+  
+  form.addEventListener("submit", function (e) {
     console.group("⚙️ FormData payload al submit");
-    for (let [k, v] of fd.entries()) console.log(k, ":", v);
+    const fd = new FormData(this);
+    for (let [k, v] of fd.entries()) {
+      console.log(k, ":", v);
+    }
     console.groupEnd();
+    
+    // Controlla se ci sono dati nelle tabelle
+    const tableData = Array.from(fd.entries()).filter(([k]) => 
+      k.startsWith("TroupeOrari") || 
+      k.startsWith("CastConvocazioni") || 
+      k.startsWith("Trasporti") || 
+      k.startsWith("Contatti")
+    );
+    
+    if (tableData.length === 0) {
+      console.warn("⚠️ Nessuna riga nelle tabelle dinamiche");
+    } else {
+      console.log(`✅ Trovati ${tableData.length} campi dalle tabelle`);
+    }
   });
+  
+  console.log("✅ Listener submit attaccato al form");
 });

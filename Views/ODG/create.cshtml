@@ -7,7 +7,21 @@
     <h2 class="mb-4">Crea Ordine del Giorno</h2>
     <p>Quando crei un ODG ricordati di inserire tutti i campi. Le tabelle possono anche essere vuote.</p>
 
-    <form asp-action="Create" method="post">
+     <form asp-action="Create" method="post">
+        @* 🔧 Mostra errori di validazione *@
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                <strong>Errore di validazione:</strong>
+                <ul>
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                </ul>
+            </div>
+        }
+        
         <input type="hidden" asp-for="CinemaOrderId" />
 
         <div class="row g-3">
