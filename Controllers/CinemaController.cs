@@ -117,6 +117,10 @@ namespace OrderTrackingApp.Controllers
                     return NotFound();
 
                 var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return Unauthorized();
+                }
                 var userRoles = await _userManager.GetRolesAsync(user);
 
                 if (userRoles.Contains("Manager"))
