@@ -160,13 +160,17 @@ namespace OrderTrackingApp.Controllers
             return View(item);
         }
 
-        // POST: DeleteConfirmed
+                // POST: DeleteConfirmed
         [HttpPost, ActionName("Delete")]
         [HasPermission("Contatti.Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var item = await _ctx.TroupeCastContacts.FindAsync(id)!;
+            var item = await _ctx.TroupeCastContacts.FindAsync(id);
+            if (item == null)
+            {
+                return NotFound();
+            }
             _ctx.TroupeCastContacts.Remove(item);
             await _ctx.SaveChangesAsync();
             return RedirectToAction(nameof(Index), new { projectId = item.CinemaOrderId });
