@@ -430,6 +430,9 @@ FodyWeavers.xsd
 
 # Rimozione del file per il developement dalla repo
 appsettings.Development.json
+
 ordertracking.db
 ordertracking.db-wal
 ordertracking.db-shm
+
+Migrations/
