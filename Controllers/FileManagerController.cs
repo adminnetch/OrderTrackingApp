@@ -21,7 +21,6 @@ using System.Text;
 using System.Net;
 using System.Security.Claims;
 
-
 namespace OrderTrackingApp.Controllers
 {
     public class FileManagerController : Controller
@@ -43,6 +42,18 @@ namespace OrderTrackingApp.Controllers
             _configuration = configuration;
         }
 
+        // ==========================================
+        // 🔒 HELPER DI SICUREZZA: Anti Path Traversal
+        // ==========================================
+        private bool IsPathSafe(string rootPath, string targetPath, out string fullTargetPath)
+        {
+            fullTargetPath = Path.GetFullPath(targetPath);
+            var normalizedRoot = Path.GetFullPath(rootPath).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            
+            return fullTargetPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase) || 
+                   fullTargetPath.Equals(Path.GetFullPath(rootPath), StringComparison.OrdinalIgnoreCase);
+        }
+
         // Mostra cartelle e file
         [HttpGet]
         [HasPermission("File.FileRead")]
@@ -52,9 +63,7 @@ namespace OrderTrackingApp.Controllers
             if (project == null) return NotFound();
 
             var rootPath = Path.Combine(_storageService.GetRootPath(), projectId.ToString());
-            var currentPath = string.IsNullOrEmpty(folderName)
-                                  ? rootPath
-                                  : Path.Combine(rootPath, folderName);
+            var currentPath = string.IsNullOrEmpty(folderName) ? rootPath : Path.Combine(rootPath, folderName);
 
             if (!Directory.Exists(currentPath))
                 return NotFound("Cartella non trovata.");
@@ -63,17 +72,9 @@ namespace OrderTrackingApp.Controllers
             ViewBag.ProjectId = projectId;
             ViewBag.FolderName = folderName ?? "";
 
-            ViewBag.Folders = Directory.GetDirectories(currentPath)
-                                       .Select(Path.GetFileName)
-                                       .OrderBy(n => n)
-                                       .ToList();
+            ViewBag.Folders = Directory.GetDirectories(currentPath).Select(Path.GetFileName).OrderBy(n => n).ToList();
+            ViewBag.Files = Directory.GetFiles(currentPath).Select(Path.GetFileName).OrderBy(n => n).ToList();
 
-            ViewBag.Files = Directory.GetFiles(currentPath)
-                                     .Select(Path.GetFileName)
-                                     .OrderBy(n => n)
-                                     .ToList();
-
-            // Passa l'entità ProjectFile completa, non un anonimo
             ViewBag.FileMetadata = _context.ProjectFiles
                 .Where(f => f.ProjectId == projectId && f.FolderName == (folderName ?? ""))
                 .ToList();
@@ -87,18 +88,16 @@ namespace OrderTrackingApp.Controllers
         public IActionResult ViewFile(int projectId, string? folderName, string fileName)
         {
             folderName ??= "";
-            var filePath = Path.Combine(
-                _storageService.GetRootPath(),
-                projectId.ToString(),
-                folderName,
-                fileName);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var targetPath = Path.Combine(rootPath, folderName, Path.GetFileName(fileName));
 
-            // 1) File esiste?
-            if (!System.IO.File.Exists(filePath))
+            if (!IsPathSafe(rootPath, targetPath, out var fullPath))
+                return Forbid("Percorso non valido.");
+
+            if (!System.IO.File.Exists(fullPath))
                 return NotFound("File non trovato.");
 
-            // 2) Determina MIME type in base all'estensione
-            var ext = Path.GetExtension(fileName).ToLowerInvariant();
+            var ext = Path.GetExtension(fullPath).ToLowerInvariant();
             string contentType = ext switch
             {
                 ".pdf" => "application/pdf",
@@ -109,28 +108,24 @@ namespace OrderTrackingApp.Controllers
                 ".svg" => "image/svg+xml",
                 ".txt" => "text/plain",
                 ".csv" => "text/csv",
-                // aggiungi qui altri se vuoi...
                 _ => "application/octet-stream"
             };
 
-            // 3) Leggi e ritorna
-            var bytes = System.IO.File.ReadAllBytes(filePath);
+            var bytes = System.IO.File.ReadAllBytes(fullPath);
             return new FileContentResult(bytes, contentType);
         }
 
         // Upload multiplo (+ drag&drop)
         [HttpPost]
         [HasPermission("File.FileUpload")]
-        public async Task<IActionResult> UploadFile(
-            int projectId,
-            string? folderName,
-            List<IFormFile> files)
+        public async Task<IActionResult> UploadFile(int projectId, string? folderName, List<IFormFile> files)
         {
             folderName ??= "";
-            var basePath = Path.Combine(
-                _storageService.GetRootPath(),
-                projectId.ToString(),
-                folderName);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var targetPath = Path.Combine(rootPath, folderName);
+
+            if (!IsPathSafe(rootPath, targetPath, out var basePath))
+                return Forbid("Percorso non valido.");
 
             if (!Directory.Exists(basePath))
                 Directory.CreateDirectory(basePath);
@@ -141,16 +136,20 @@ namespace OrderTrackingApp.Controllers
             {
                 if (file?.Length > 0)
                 {
-                    var path = Path.Combine(basePath, file.FileName);
-                    using var stream = new FileStream(path, FileMode.Create);
+                    var safeFileName = Path.GetFileName(file.FileName);
+                    var filePath = Path.Combine(basePath, safeFileName);
+
+                    if (!IsPathSafe(rootPath, filePath, out var finalPath))
+                        continue;
+
+                    using var stream = new FileStream(finalPath, FileMode.Create);
                     await file.CopyToAsync(stream);
 
-                    // salva metadati
                     _context.ProjectFiles.Add(new ProjectFile
                     {
                         ProjectId = projectId,
                         FolderName = folderName,
-                        FileName = file.FileName,
+                        FileName = safeFileName,
                         UploadedAt = DateTime.Now,
                         UploadedBy = user?.VisualName ?? "Sconosciuto"
                     });
@@ -164,25 +163,22 @@ namespace OrderTrackingApp.Controllers
         // Scarica singolo file
         [HttpGet]
         [HasPermission("File.Download")]
-        public IActionResult DownloadFile(
-            int projectId,
-            string? folderName,
-            string fileName)
+        public IActionResult DownloadFile(int projectId, string? folderName, string fileName)
         {
             folderName ??= "";
-            var filePath = Path.Combine(
-                _storageService.GetRootPath(),
-                projectId.ToString(),
-                folderName,
-                fileName);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var targetPath = Path.Combine(rootPath, folderName, Path.GetFileName(fileName));
 
-            if (!System.IO.File.Exists(filePath))
+            if (!IsPathSafe(rootPath, targetPath, out var fullPath))
+                return Forbid("Percorso non valido.");
+
+            if (!System.IO.File.Exists(fullPath))
                 return NotFound("File non trovato.");
 
-            var bytes = System.IO.File.ReadAllBytes(filePath);
+            var bytes = System.IO.File.ReadAllBytes(fullPath);
             return new FileContentResult(bytes, "application/octet-stream")
             {
-                FileDownloadName = fileName
+                FileDownloadName = Path.GetFileName(fileName)
             };
         }
 
@@ -191,47 +187,59 @@ namespace OrderTrackingApp.Controllers
         [HasPermission("File.Download")]
         public IActionResult DownloadFolderZip(int projectId, string folderName)
         {
-            var rootPath = Path.Combine(_storageService.GetRootPath(), projectId.ToString());
-            var folderPath = Path.Combine(rootPath, folderName);
-            if (!Directory.Exists(folderPath))
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var targetPath = Path.Combine(rootPath, folderName);
+
+            if (!IsPathSafe(rootPath, targetPath, out var fullPath))
+                return Forbid("Percorso non valido.");
+
+            if (!Directory.Exists(fullPath))
                 return NotFound();
 
-            var tempZip = Path.Combine(Path.GetTempPath(), $"{folderName}.zip");
+            var tempZip = Path.Combine(Path.GetTempPath(), $"{Path.GetFileName(folderName)}.zip");
             if (System.IO.File.Exists(tempZip))
                 System.IO.File.Delete(tempZip);
 
-            ZipFile.CreateFromDirectory(folderPath, tempZip);
+            ZipFile.CreateFromDirectory(fullPath, tempZip);
             var bytes = System.IO.File.ReadAllBytes(tempZip);
             return new FileContentResult(bytes, "application/zip")
             {
-                FileDownloadName = $"{folderName}.zip"
+                FileDownloadName = $"{Path.GetFileName(folderName)}.zip"
             };
         }
 
         // Scarica più cartelle in ZIP
         [HttpPost]
         [HasPermission("File.Download")]
-        public IActionResult DownloadMultipleFolders(
-            int projectId,
-            string? currentFolder,
-            List<string> selectedFolders)
+        public IActionResult DownloadMultipleFolders(int projectId, string? currentFolder, List<string> selectedFolders)
         {
             currentFolder ??= "";
-            var rootPath = Path.Combine(_storageService.GetRootPath(), projectId.ToString());
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
             var baseFolder = Path.Combine(rootPath, currentFolder);
+
+            if (!IsPathSafe(rootPath, baseFolder, out var safeBaseFolder))
+                return Forbid("Percorso non valido.");
 
             var tempZip = Path.Combine(Path.GetTempPath(), $"cartelle_{Guid.NewGuid()}.zip");
             using var zip = ZipFile.Open(tempZip, ZipArchiveMode.Create);
 
             foreach (var folder in selectedFolders)
             {
-                var fullPath = Path.Combine(baseFolder, folder);
-                if (!Directory.Exists(fullPath)) continue;
+                var safeFolderName = new string(folder.Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray());
+                var fullPath = Path.Combine(safeBaseFolder, safeFolderName);
 
-                foreach (var file in Directory.GetFiles(fullPath, "*", SearchOption.AllDirectories))
+                if (!IsPathSafe(rootPath, fullPath, out var finalFullPath))
+                    continue;
+
+                if (!Directory.Exists(finalFullPath)) continue;
+
+                foreach (var file in Directory.GetFiles(finalFullPath, "*", SearchOption.AllDirectories))
                 {
-                    var entryName = Path.GetRelativePath(rootPath, file);
-                    zip.CreateEntryFromFile(file, entryName);
+                    if (IsPathSafe(rootPath, file, out var safeFile))
+                    {
+                        var entryName = Path.GetRelativePath(rootPath, safeFile);
+                        zip.CreateEntryFromFile(safeFile, entryName);
+                    }
                 }
             }
 
@@ -245,17 +253,14 @@ namespace OrderTrackingApp.Controllers
         // Crea una sotto‐cartella
         [HttpPost]
         [HasPermission("File.Folder.Create")]
-        public IActionResult CreateFolder(
-            int projectId,
-            string? parentFolder,
-            string folderName)
+        public IActionResult CreateFolder(int projectId, string? parentFolder, string folderName)
         {
             parentFolder ??= "";
-            var basePath = Path.Combine(
-                _storageService.GetRootPath(),
-                projectId.ToString(),
-                parentFolder);
-            var fullPath = Path.Combine(basePath, folderName);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var targetPath = Path.Combine(rootPath, parentFolder, Path.GetFileName(folderName));
+
+            if (!IsPathSafe(rootPath, targetPath, out var fullPath))
+                return Forbid("Percorso non valido.");
 
             if (!Directory.Exists(fullPath))
                 Directory.CreateDirectory(fullPath);
@@ -268,8 +273,11 @@ namespace OrderTrackingApp.Controllers
         [HasPermission("File.Folder.Delete")]
         public IActionResult DeleteFolder(int projectId, string folderName)
         {
-            var rootPath = Path.Combine(_storageService.GetRootPath(), projectId.ToString());
-            var fullPath = Path.Combine(rootPath, folderName);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var targetPath = Path.Combine(rootPath, folderName);
+
+            if (!IsPathSafe(rootPath, targetPath, out var fullPath))
+                return Forbid("Percorso non valido.");
 
             if (Directory.Exists(fullPath))
                 Directory.Delete(fullPath, recursive: true);
@@ -283,60 +291,59 @@ namespace OrderTrackingApp.Controllers
         [HasPermission("File.Folder.Rename")]
         public IActionResult RenameFolder(int projectId, string oldPath, string newName)
         {
-            var root = Path.Combine(_storageService.GetRootPath(), projectId.ToString());
-            var oldFull = Path.Combine(root, oldPath);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var oldFull = Path.Combine(rootPath, oldPath);
             var parent = Path.GetDirectoryName(oldPath) ?? "";
-            var newFull = Path.Combine(root, parent, newName);
+            var newFull = Path.Combine(rootPath, parent, Path.GetFileName(newName));
 
-            if (!Directory.Exists(oldFull)) return NotFound("Cartella originale non trovata.");
-            if (Directory.Exists(newFull)) return Conflict("Cartella con quel nome già esistente.");
+            if (!IsPathSafe(rootPath, oldFull, out var safeOldFull))
+                return Forbid("Percorso originale non valido.");
+            if (!IsPathSafe(rootPath, newFull, out var safeNewFull))
+                return Forbid("Percorso di destinazione non valido.");
 
-            Directory.Move(oldFull, newFull);
+            if (!Directory.Exists(safeOldFull)) return NotFound("Cartella originale non trovata.");
+            if (Directory.Exists(safeNewFull)) return Conflict("Cartella con quel nome già esistente.");
+
+            Directory.Move(safeOldFull, safeNewFull);
             return RedirectToAction("Index", new { projectId, folderName = parent });
         }
 
         // Rinomina un file
         [HttpGet]
         [HasPermission("File.FileRename")]
-        public IActionResult RenameFile(
-            int projectId,
-            string? folderName,
-            string oldFileName,
-            string newFileName)
+        public IActionResult RenameFile(int projectId, string? folderName, string oldFileName, string newFileName)
         {
             folderName ??= "";
-            var folderPath = Path.Combine(
-                _storageService.GetRootPath(),
-                projectId.ToString(),
-                folderName);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var oldPath = Path.Combine(rootPath, folderName, Path.GetFileName(oldFileName));
+            var newPath = Path.Combine(rootPath, folderName, Path.GetFileName(newFileName));
 
-            var oldPath = Path.Combine(folderPath, oldFileName);
-            var newPath = Path.Combine(folderPath, newFileName);
+            if (!IsPathSafe(rootPath, oldPath, out var safeOldPath))
+                return Forbid("Percorso originale non valido.");
+            if (!IsPathSafe(rootPath, newPath, out var safeNewPath))
+                return Forbid("Percorso di destinazione non valido.");
 
-            if (!System.IO.File.Exists(oldPath)) return NotFound("File non trovato.");
-            if (System.IO.File.Exists(newPath)) return Conflict("File con lo stesso nome già esistente.");
+            if (!System.IO.File.Exists(safeOldPath)) return NotFound("File non trovato.");
+            if (System.IO.File.Exists(safeNewPath)) return Conflict("File con lo stesso nome già esistente.");
 
-            System.IO.File.Move(oldPath, newPath);
+            System.IO.File.Move(safeOldPath, safeNewPath);
             return RedirectToAction("Index", new { projectId, folderName });
         }
 
         // Elimina un file
         [HttpGet]
         [HasPermission("File.FileDelete")]
-        public IActionResult DeleteFile(
-            int projectId,
-            string? folderName,
-            string fileName)
+        public IActionResult DeleteFile(int projectId, string? folderName, string fileName)
         {
             folderName ??= "";
-            var filePath = Path.Combine(
-                _storageService.GetRootPath(),
-                projectId.ToString(),
-                folderName,
-                fileName);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var targetPath = Path.Combine(rootPath, folderName, Path.GetFileName(fileName));
 
-            if (System.IO.File.Exists(filePath))
-                System.IO.File.Delete(filePath);
+            if (!IsPathSafe(rootPath, targetPath, out var fullPath))
+                return Forbid("Percorso non valido.");
+
+            if (System.IO.File.Exists(fullPath))
+                System.IO.File.Delete(fullPath);
 
             return RedirectToAction("Index", new { projectId, folderName });
         }
@@ -344,22 +351,23 @@ namespace OrderTrackingApp.Controllers
         // Sposta un file
         [HttpPost]
         [HasPermission("File.FileUpload")]
-        public IActionResult MoveFile(
-            int projectId,
-            string? srcFolder,
-            string fileName,
-            string? destFolder)
+        public IActionResult MoveFile(int projectId, string? srcFolder, string fileName, string? destFolder)
         {
             srcFolder ??= "";
             destFolder ??= "";
-            var root = Path.Combine(_storageService.GetRootPath(), projectId.ToString());
-            var oldPath = Path.Combine(root, srcFolder, fileName);
-            var newPath = Path.Combine(root, destFolder, fileName);
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var oldPath = Path.Combine(rootPath, srcFolder, Path.GetFileName(fileName));
+            var newPath = Path.Combine(rootPath, destFolder, Path.GetFileName(fileName));
 
-            if (!System.IO.File.Exists(oldPath)) return NotFound("File non trovato.");
+            if (!IsPathSafe(rootPath, oldPath, out var safeOldPath))
+                return Forbid("Percorso di origine non valido.");
+            if (!IsPathSafe(rootPath, newPath, out var safeNewPath))
+                return Forbid("Percorso di destinazione non valido.");
 
-            Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
-            System.IO.File.Move(oldPath, newPath);
+            if (!System.IO.File.Exists(safeOldPath)) return NotFound("File non trovato.");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(safeNewPath)!);
+            System.IO.File.Move(safeOldPath, safeNewPath);
             return RedirectToAction("Index", new { projectId, folderName = srcFolder });
         }
 
@@ -368,18 +376,17 @@ namespace OrderTrackingApp.Controllers
         public IActionResult EditFile(int projectId, string? folderName, string fileName)
         {
             folderName ??= string.Empty;
+            var safeFolderFs = (folderName ?? string.Empty).Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar).Trim(Path.DirectorySeparatorChar);
+            
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var filePath = Path.Combine(rootPath, safeFolderFs, fileName);
+            
+            if (!IsPathSafe(rootPath, filePath, out var fullPath))
+                return Forbid("Percorso non valido.");
 
-            // 📂 Path locale (solo per verificare che il file esista)
-            var safeFolderFs = (folderName ?? string.Empty)
-                .Replace('\\', Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar)
-                .Trim(Path.DirectorySeparatorChar);
-
-            var filePath = Path.Combine(_storageService.GetRootPath(), projectId.ToString(), safeFolderFs, fileName);
-            if (!System.IO.File.Exists(filePath))
+            if (!System.IO.File.Exists(fullPath))
                 return NotFound("File non trovato.");
 
-            // 📄 Tipo documento
             var ext = Path.GetExtension(fileName).ToLowerInvariant().Trim('.');
             var documentType = ext switch
             {
@@ -389,56 +396,40 @@ namespace OrderTrackingApp.Controllers
                 _ => "text"
             };
 
-            // 🔑 document.key (≤128; cambia se cambia il file)
-            var fi = new FileInfo(filePath);
+            var fi = new FileInfo(fullPath);
             var keySource = $"{projectId}/{(folderName ?? string.Empty)}/{fileName}|{fi.LastWriteTimeUtc.Ticks}";
             using var sha = System.Security.Cryptography.SHA256.Create();
             var keyBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(keySource));
-            var documentKey = Convert.ToHexString(keyBytes)[..64]; // stabile e compatto
+            var documentKey = Convert.ToHexString(keyBytes)[..64];
 
-            // 🔐 JWT base
             var secret = _configuration["JwtSettings:Secret"];
-                if (string.IsNullOrEmpty(secret)) throw new Exception("Errore critico: Segreto JWT non configurato in appsettings.json.");
+            if (string.IsNullOrEmpty(secret) || secret.StartsWith("${")) 
+                throw new Exception("Errore critico: Segreto JWT non configurato.");
+                
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var jwtHandler = new JwtSecurityTokenHandler();
 
-            // 🎫 Token per accesso al file (usato nella query) — 15 min
             var accessTokenDescriptor = new SecurityTokenDescriptor
             {
                 Expires = DateTime.UtcNow.AddMinutes(15),
                 SigningCredentials = credentials,
-                Claims = new Dictionary<string, object>
-        {
-            { "projectId", projectId },
-            { "folderPath", folderName ?? "" },
-            { "fileName", fileName }
-        }
+                Claims = new Dictionary<string, object> { { "projectId", projectId }, { "folderPath", folderName ?? "" }, { "fileName", fileName } }
             };
             var accessToken = jwtHandler.CreateEncodedJwt(accessTokenDescriptor);
 
-            // ⚠️ NON codificare gli slash delle cartelle
-            var folderSegment = string.IsNullOrWhiteSpace(folderName)
-                ? ""
-                : folderName!.Trim().Trim('/');
-
-            var baseAppUrl = "https://ota.projectcesare.ch"; // se cambi dominio dell’app, cambia qui
+            var folderSegment = string.IsNullOrWhiteSpace(folderName) ? "" : folderName!.Trim().Trim('/');
+            var baseAppUrl = "https://ota.projectcesare.ch"; 
 
             var fileUrl = string.IsNullOrEmpty(folderSegment)
                 ? $"{baseAppUrl}/files/{projectId}/{Uri.EscapeDataString(fileName)}?access_token={WebUtility.UrlEncode(accessToken)}"
                 : $"{baseAppUrl}/files/{projectId}/{folderSegment}/{Uri.EscapeDataString(fileName)}?access_token={WebUtility.UrlEncode(accessToken)}";
 
-            // 🎫 Token che OnlyOffice metterà in HEADER (onRequestHeaders) — 30 min
             var callbackHeaderTokenDescriptor = new SecurityTokenDescriptor
             {
                 Expires = DateTime.UtcNow.AddMinutes(30),
                 SigningCredentials = credentials,
-                Claims = new Dictionary<string, object>
-        {
-            { "projectId", projectId },
-            { "folderPath", folderName ?? "" },
-            { "fileName", fileName }
-        }
+                Claims = new Dictionary<string, object> { { "projectId", projectId }, { "folderPath", folderName ?? "" }, { "fileName", fileName } }
             };
             var callbackHeaderToken = jwtHandler.CreateEncodedJwt(callbackHeaderTokenDescriptor);
 
@@ -446,31 +437,16 @@ namespace OrderTrackingApp.Controllers
                 ? $"{baseAppUrl}/onlyoffice/callback?projectId={projectId}&fileName={Uri.EscapeDataString(fileName)}"
                 : $"{baseAppUrl}/onlyoffice/callback?projectId={projectId}&folderName={Uri.EscapeDataString(folderSegment)}&fileName={Uri.EscapeDataString(fileName)}";
 
-            // ⚙️ Config per OnlyOffice
-
-            // === Utente reale per OnlyOffice ===
-            // Id stabile per la sessione di co-editing
-            string userId =
-                User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                ?? User?.Identity?.Name
-                ?? HttpContext.Session?.Id
-                ?? Guid.NewGuid().ToString("N");
-
-            // Recupera utente dal DB
+            string userId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User?.Identity?.Name ?? HttpContext.Session?.Id ?? Guid.NewGuid().ToString("N");
             string displayName = "Utente";
             try
             {
                 var login = User?.Identity?.Name;
                 var idClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
                 OrderTrackingApp.Models.User? dbUser = null;
 
-                if (!string.IsNullOrWhiteSpace(idClaim))
-                    dbUser = _context.Users.FirstOrDefault(u => u.Id == idClaim);
-
-                if (dbUser == null && !string.IsNullOrWhiteSpace(login))
-                    dbUser = _context.Users.FirstOrDefault(u =>
-                        u.UserName == login || u.Email == login);
+                if (!string.IsNullOrWhiteSpace(idClaim)) dbUser = _context.Users.FirstOrDefault(u => u.Id == idClaim);
+                if (dbUser == null && !string.IsNullOrWhiteSpace(login)) dbUser = _context.Users.FirstOrDefault(u => u.UserName == login || u.Email == login);
 
                 if (dbUser != null)
                 {
@@ -479,67 +455,32 @@ namespace OrderTrackingApp.Controllers
                                 : !string.IsNullOrWhiteSpace(dbUser.UserName) ? dbUser.UserName
                                 : !string.IsNullOrWhiteSpace(dbUser.Email) ? dbUser.Email.Split('@')[0]
                                 : displayName;
-
-                    if (string.IsNullOrWhiteSpace(userId))
-                        userId = dbUser.Id;
+                    if (string.IsNullOrWhiteSpace(userId)) userId = dbUser.Id;
                 }
             }
-            catch
-            {
-                // fallback ai claims se query fallisce
-                var claimName = User?.FindFirst("name")?.Value;
-                var given = User?.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value;
-                var sur = User?.FindFirst(System.Security.Claims.ClaimTypes.Surname)?.Value;
-                var email = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            catch { }
 
-                var gnSn = $"{(given ?? "").Trim()} {(sur ?? "").Trim()}".Trim();
-                displayName = !string.IsNullOrWhiteSpace(claimName) ? claimName
-                            : !string.IsNullOrWhiteSpace(gnSn) ? gnSn
-                            : !string.IsNullOrWhiteSpace(email) ? email.Split('@')[0]
-                            : (User?.Identity?.Name ?? displayName);
-            }
-
-            // …poi dentro la config:
             var config = new
             {
                 document = new { fileType = ext, key = documentKey, title = fileName, url = fileUrl },
                 documentType = documentType,
-                editorConfig = new
-                {
-                    callbackUrl = callbackUrl,
-                    mode = "edit",
-                    lang = "it",
-                    user = new { id = userId, name = displayName },
-                    autosave = true
-                },
-                events = new
-                {
-                    onRequestHeaders = new Dictionary<string, string>
-        {
-            { "Authorization", $"Bearer {callbackHeaderToken}" }
-        }
-                }
+                editorConfig = new { callbackUrl = callbackUrl, mode = "edit", lang = "it", user = new { id = userId, name = displayName }, autosave = true },
+                events = new { onRequestHeaders = new Dictionary<string, string> { { "Authorization", $"Bearer {callbackHeaderToken}" } } }
             };
 
-
-            // 🧾 JWT “config token” (se hai JWT attivo sul DocServer)
             var configTokenDescriptor = new SecurityTokenDescriptor
             {
                 Expires = DateTime.UtcNow.AddMinutes(15),
                 SigningCredentials = credentials,
                 Claims = new Dictionary<string, object>
-        {
-            { "document", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(config.document)) },
-            { "editorConfig", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(config.editorConfig)) },
-            { "documentType", config.documentType },
-            { "events", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(config.events)) }
-        }
+                {
+                    { "document", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(config.document)) },
+                    { "editorConfig", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(config.editorConfig)) },
+                    { "documentType", config.documentType },
+                    { "events", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(config.events)) }
+                }
             };
             var configToken = jwtHandler.CreateEncodedJwt(configTokenDescriptor);
-
-            // 🧪 Log utili
-            Console.WriteLine("📄 fileUrl: " + fileUrl);
-            Console.WriteLine("🔁 callbackUrl: " + callbackUrl);
 
             ViewBag.ConfigJson = JsonSerializer.Serialize(config);
             ViewBag.Token = configToken;
@@ -547,7 +488,6 @@ namespace OrderTrackingApp.Controllers
 
             return View("EditDocument");
         }
-
 
         // ---------------------- SERVE FILE (binario) ----------------------
         [HttpGet("/files/{projectId}/{*folderPath}")]
@@ -557,7 +497,6 @@ namespace OrderTrackingApp.Controllers
             Console.WriteLine("📥 ServeFile chiamato");
             Console.WriteLine($"🔧 projectId: {projectId}, folderPath(raw): {folderPath}");
 
-            // 1) Autorizzazione tramite JWT: query ?access_token=... oppure Header: Authorization: Bearer ...
             var token = Request.Query["access_token"].ToString();
             if (string.IsNullOrEmpty(token))
             {
@@ -570,7 +509,9 @@ namespace OrderTrackingApp.Controllers
             try
             {
                 var secret = _configuration["JwtSettings:Secret"];
-                    if (string.IsNullOrEmpty(secret)) throw new Exception("Errore critico: Segreto JWT non configurato in appsettings.json.");
+                if (string.IsNullOrEmpty(secret) || secret.StartsWith("${")) 
+                    throw new Exception("Errore critico: Segreto JWT non configurato.");
+                    
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
                 new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters
                 {
@@ -587,14 +528,12 @@ namespace OrderTrackingApp.Controllers
                 return Unauthorized("Token non valido.");
             }
 
-            // 2) Normalizza percorso
             var decoded = Uri.UnescapeDataString(folderPath ?? "");
-            var safePath = decoded.Replace('\\', '/').Trim().Trim('/');
-            if (safePath.Contains("..")) return Unauthorized("Percorso non valido."); // anti-traversal
+            var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.ToString()));
+            var targetPath = Path.Combine(rootPath, decoded.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar));
 
-            // Route cattura anche il filename nell’ultimo segmento
-            var fullPath = Path.Combine(_storageService.GetRootPath(), projectId.ToString(),
-                                        safePath.Replace('/', Path.DirectorySeparatorChar));
+            if (!IsPathSafe(rootPath, targetPath, out var fullPath))
+                return Unauthorized("Percorso non valido.");
 
             Console.WriteLine($"📄 Path file calcolato: {fullPath}");
             if (!System.IO.File.Exists(fullPath)) return NotFound("File non trovato.");
@@ -615,40 +554,33 @@ namespace OrderTrackingApp.Controllers
 
             var bytes = System.IO.File.ReadAllBytes(fullPath);
             Console.WriteLine("📤 File inviato correttamente");
-            // Importante: niente Content-Disposition → diamo solo il binario
             return File(bytes, mime);
         }
 
-
         // ---------------------- CALLBACK SALVATAGGIO ----------------------
-        [AllowAnonymous] // OnlyOffice deve poterlo chiamare senza login
+        [AllowAnonymous]
         [HttpPost("/onlyoffice/callback")]
-        public async Task<IActionResult> OnlyOfficeCallback(
-            [FromQuery] int? projectId,
-            [FromQuery] string? folderName,
-            [FromQuery] string? fileName)
+        public async Task<IActionResult> OnlyOfficeCallback([FromQuery] int? projectId, [FromQuery] string? folderName, [FromQuery] string? fileName)
         {
             try
             {
                 using var reader = new StreamReader(Request.Body);
                 var body = await reader.ReadToEndAsync();
                 Console.WriteLine("📥 Callback ricevuto");
-                Console.WriteLine($"📦 Corpo JSON ricevuto:\n{body}");
 
                 using var json = JsonDocument.Parse(body);
                 var root = json.RootElement;
 
-                // ONLYOFFICE manda vari status; 1 = opened
                 var status = root.TryGetProperty("status", out var s) ? s.GetInt32() : 0;
-                Console.WriteLine($"🔁 Status ricevuto: {status}");
                 if (status == 1) return Json(new { error = 0 });
 
-                // 🔐 Verifica header Authorization
                 var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "").Trim();
                 if (string.IsNullOrEmpty(token)) return Unauthorized("Token assente");
 
                 var secret = _configuration["JwtSettings:Secret"];
-                if (string.IsNullOrEmpty(secret)) throw new Exception("Errore critico: Segreto JWT non configurato in appsettings.json.");
+                if (string.IsNullOrEmpty(secret) || secret.StartsWith("${")) 
+                    throw new Exception("Errore critico: Segreto JWT non configurato.");
+                    
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
                 new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters
                 {
@@ -657,57 +589,42 @@ namespace OrderTrackingApp.Controllers
                     ValidateLifetime = true,
                     IssuerSigningKey = key
                 }, out _);
-                Console.WriteLine("✅ Token JWT ricevuto valido");
 
                 if ((status == 2 || status == 6) && root.TryGetProperty("url", out var urlProp))
                 {
                     var url = urlProp.GetString();
-                    Console.WriteLine($"🌐 URL da cui scaricare il file modificato: {url}");
-
                     if (!string.IsNullOrEmpty(url) && projectId.HasValue && !string.IsNullOrEmpty(fileName))
                     {
-                        // Normalizza cartella
                         var folderSegment = Uri.UnescapeDataString(folderName ?? "").Replace('\\', '/').Trim().Trim('/');
-                        if (folderSegment.Contains("..")) return Unauthorized("Percorso non valido.");
+                        var rootPath = Path.GetFullPath(Path.Combine(_storageService.GetRootPath(), projectId.Value.ToString()));
+                        var savePath = string.IsNullOrEmpty(folderSegment)
+                            ? Path.Combine(rootPath, fileName!)
+                            : Path.Combine(rootPath, folderSegment.Replace('/', Path.DirectorySeparatorChar), fileName!);
 
-                        // Scarica file aggiornato
+                        if (!IsPathSafe(rootPath, savePath, out var finalSavePath))
+                            return Unauthorized("Percorso di salvataggio non valido.");
+
                         using var http = new HttpClient();
                         var fileBytes = await http.GetByteArrayAsync(url);
 
-                        var savePath = string.IsNullOrEmpty(folderSegment)
-                            ? Path.Combine(_storageService.GetRootPath(), projectId.Value.ToString(), fileName!)
-                            : Path.Combine(_storageService.GetRootPath(), projectId.Value.ToString(),
-                                           folderSegment.Replace('/', Path.DirectorySeparatorChar), fileName!);
+                        Directory.CreateDirectory(Path.GetDirectoryName(finalSavePath)!);
+                        await System.IO.File.WriteAllBytesAsync(finalSavePath, fileBytes);
+                        Console.WriteLine($"✅ File salvato correttamente in: {finalSavePath}");
 
-                        Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
-                        await System.IO.File.WriteAllBytesAsync(savePath, fileBytes);
-                        Console.WriteLine($"✅ File salvato correttamente in: {savePath}");
-
-                        // Metadati DB (se presenti)
-                        var entry = _context.ProjectFiles.FirstOrDefault(f =>
-                            f.ProjectId == projectId.Value &&
-                            f.FolderName == (folderName ?? "") &&
-                            f.FileName == fileName);
-
+                        var entry = _context.ProjectFiles.FirstOrDefault(f => f.ProjectId == projectId.Value && f.FolderName == (folderName ?? "") && f.FileName == fileName);
                         if (entry != null)
                         {
                             entry.LastModifiedAt = DateTime.UtcNow;
                             entry.LastModifiedBy = "ONLYOFFICE";
                             await _context.SaveChangesAsync();
-                            Console.WriteLine("🗂️ Metadati aggiornati nel database.");
                         }
                     }
                 }
-                else
-                {
-                    Console.WriteLine($"ℹ️ Status non gestito ({status}) o url mancante.");
-                }
-
                 return Json(new { error = 0 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[OnlyOfficeCallback] ❌ Eccezione: {ex.Message}\n{ex.StackTrace}");
+                Console.WriteLine($"[OnlyOfficeCallback] ❌ Eccezione: {ex.Message}");
                 return Json(new { error = 1 });
             }
         }
