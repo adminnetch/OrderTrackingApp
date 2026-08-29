@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using MailKit.Net.Smtp;
 using MimeKit;
@@ -21,8 +22,19 @@ namespace OrderTrackingApp.Services
             byte[] attachmentBytes,
             string attachmentName)
         {
+            // 🔒 Validazione configurazione email (risolve 4 warning CS8604)
+            var from = _config["Email:From"] 
+                ?? throw new InvalidOperationException("Configurazione email mancante: Email:From");
+            var smtpServer = _config["Email:SmtpServer"] 
+                ?? throw new InvalidOperationException("Configurazione email mancante: Email:SmtpServer");
+            var smtpPort = int.Parse(_config["Email:SmtpPort"] ?? "25");
+            var username = _config["Email:Username"] 
+                ?? throw new InvalidOperationException("Configurazione email mancante: Email:Username");
+            var password = _config["Email:Password"] 
+                ?? throw new InvalidOperationException("Configurazione email mancante: Email:Password");
+
             var message = new MimeMessage();
-            message.From.Add(MailboxAddress.Parse(_config["Email:From"]));
+            message.From.Add(MailboxAddress.Parse(from));
             message.To.Add(MailboxAddress.Parse(toEmail));
             message.Subject = subject;
 
@@ -32,15 +44,8 @@ namespace OrderTrackingApp.Services
             message.Body = builder.ToMessageBody();
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(
-                _config["Email:SmtpServer"],
-                int.Parse(_config["Email:SmtpPort"] ?? "25"),
-                false
-            );
-            await client.AuthenticateAsync(
-                _config["Email:Username"],
-                _config["Email:Password"]
-            );
+            await client.ConnectAsync(smtpServer, smtpPort, false);
+            await client.AuthenticateAsync(username, password);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
         }
