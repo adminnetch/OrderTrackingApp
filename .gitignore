@@ -435,4 +435,6 @@ ordertracking.db
 ordertracking.db-wal
 ordertracking.db-shm
 
+ODGController.cs.bak
+
 Migrations/

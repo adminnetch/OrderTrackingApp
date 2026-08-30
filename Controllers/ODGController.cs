@@ -24,15 +24,18 @@ namespace OrderTrackingApp.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
         private readonly IWebHostEnvironment _env;
+        private readonly ILogger<ODGController> _logger;
 
         public ODGController(
             AppDbContext context,
             UserManager<User> userManager,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            ILogger<ODGController> logger)
         {
             _context = context;
             _userManager = userManager;
             _env = env;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -60,6 +63,7 @@ namespace OrderTrackingApp.Controllers
                 .Include(o => o.CastConvocazioni)
                 .Include(o => o.Trasporti)
                 .Include(o => o.Contatti)
+                .AsSplitQuery()
                 .ToListAsync();
 
             ViewBag.CinemaOrderId = cinemaOrderId;
@@ -70,16 +74,13 @@ namespace OrderTrackingApp.Controllers
         [HasPermission("ODG.Create")]
         public async Task<IActionResult> Create(int cinemaOrderId)
         {
-            // 🔹 Serve per popolare il dropdown "Nome" nella tabella Troupe
             ViewBag.TroupeContacts = await _context.TroupeCastContacts
                 .Where(c => c.CinemaOrderId == cinemaOrderId)
                 .ToListAsync();
 
-            // 🔹 Serve per precompilare il campo nascosto nel form
             ViewBag.CinemaOrderId = cinemaOrderId;
 
             return View(new ODGOrder { CinemaOrderId = cinemaOrderId });
-
         }
 
         [HttpPost]
@@ -87,9 +88,28 @@ namespace OrderTrackingApp.Controllers
         [HasPermission("ODG.Create")]
         public async Task<IActionResult> Create(ODGOrder odgOrder)
         {
+            _logger.LogInformation("📥 Create POST - CinemaOrderId={Id}", odgOrder.CinemaOrderId);
+            _logger.LogInformation("📋 Troupe={T}, Cast={C}, Trasporti={Tr}, Contatti={Co}",
+                odgOrder.TroupeOrari?.Count ?? 0,
+                odgOrder.CastConvocazioni?.Count ?? 0,
+                odgOrder.Trasporti?.Count ?? 0,
+                odgOrder.Contatti?.Count ?? 0);
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("❌ ModelState non valido in Create:");
+                foreach (var entry in ModelState.Where(e => e.Value?.Errors.Count > 0))
+                {
+                    foreach (var error in entry.Value!.Errors)
+                    {
+                        _logger.LogWarning("  - {Key}: {Error}", entry.Key, error.ErrorMessage);
+                    }
+                }
+
                 ViewBag.CinemaOrderId = odgOrder.CinemaOrderId;
+                ViewBag.TroupeContacts = await _context.TroupeCastContacts
+                    .Where(c => c.CinemaOrderId == odgOrder.CinemaOrderId)
+                    .ToListAsync();
                 return View(odgOrder);
             }
 
@@ -102,6 +122,11 @@ namespace OrderTrackingApp.Controllers
 
             _context.ODGOrders.Add(odgOrder);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("✅ ODG creato Id={Id}, Troupe={T}, Cast={C}",
+                odgOrder.Id,
+                odgOrder.TroupeOrari.Count,
+                odgOrder.CastConvocazioni.Count);
 
             return RedirectToAction(nameof(Index),
                 new { cinemaOrderId = odgOrder.CinemaOrderId });
@@ -116,18 +141,24 @@ namespace OrderTrackingApp.Controllers
                 .Include(o => o.CastConvocazioni)
                 .Include(o => o.Trasporti)
                 .Include(o => o.Contatti)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (odg == null)
                 return NotFound();
 
-            // ✅ Questa riga evita l'eccezione nella View
+            _logger.LogInformation("📖 Edit GET Id={Id}: Troupe={T}, Cast={C}, Trasporti={Tr}, Contatti={Co}",
+                odg.Id,
+                odg.TroupeOrari.Count,
+                odg.CastConvocazioni.Count,
+                odg.Trasporti.Count,
+                odg.Contatti.Count);
+
             ViewBag.TroupeContacts = await _context.TroupeCastContacts
                 .Where(c => c.CinemaOrderId == odg.CinemaOrderId)
                 .ToListAsync();
 
             return View(odg);
-
         }
 
         [HttpPost]
@@ -136,17 +167,45 @@ namespace OrderTrackingApp.Controllers
         public async Task<IActionResult> Edit(int id, ODGOrder odgOrder)
         {
             if (id != odgOrder.Id) return NotFound();
-            if (!ModelState.IsValid) return View(odgOrder);
+
+            _logger.LogInformation("📥 Edit POST Id={Id}", id);
+            _logger.LogInformation("📋 Ricevuto - Troupe={T}, Cast={C}, Trasporti={Tr}, Contatti={Co}",
+                odgOrder.TroupeOrari?.Count ?? 0,
+                odgOrder.CastConvocazioni?.Count ?? 0,
+                odgOrder.Trasporti?.Count ?? 0,
+                odgOrder.Contatti?.Count ?? 0);
+
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("❌ ModelState non valido in Edit:");
+                foreach (var entry in ModelState.Where(e => e.Value?.Errors.Count > 0))
+                {
+                    foreach (var error in entry.Value!.Errors)
+                    {
+                        _logger.LogWarning("  - {Key}: {Error}", entry.Key, error.ErrorMessage);
+                    }
+                }
+
+                ViewBag.TroupeContacts = await _context.TroupeCastContacts
+                    .Where(c => c.CinemaOrderId == odgOrder.CinemaOrderId)
+                    .ToListAsync();
+                return View(odgOrder);
+            }
 
             var existing = await _context.ODGOrders
                 .Include(o => o.TroupeOrari)
                 .Include(o => o.CastConvocazioni)
                 .Include(o => o.Trasporti)
                 .Include(o => o.Contatti)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(o => o.Id == id);
+
             if (existing == null) return NotFound();
 
-            // Aggiorna proprietà semplici
+            _logger.LogInformation("📋 DB prima dell'update - Troupe={T}, Cast={C}",
+                existing.TroupeOrari.Count,
+                existing.CastConvocazioni.Count);
+
             existing.DayRec = odgOrder.DayRec;
             existing.Film = odgOrder.Film;
             existing.Regista = odgOrder.Regista;
@@ -164,7 +223,6 @@ namespace OrderTrackingApp.Controllers
             existing.NoteRegia = odgOrder.NoteRegia;
             existing.InformazioniUtili = odgOrder.InformazioniUtili;
 
-            // ✅ Corretto: ora assegna anche il foreign key ODGOrderId
             UpdateCollection(existing.TroupeOrari, odgOrder.TroupeOrari, _context.TroupeOrari, odgOrder.Id);
             UpdateCollection(existing.CastConvocazioni, odgOrder.CastConvocazioni, _context.CastConvocazioni, odgOrder.Id);
             UpdateCollection(existing.Trasporti, odgOrder.Trasporti, _context.Trasporti, odgOrder.Id);
@@ -174,9 +232,11 @@ namespace OrderTrackingApp.Controllers
             existing.UpdatedBy = user2?.VisualName ?? "Sconosciuto";
 
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("✅ ODG aggiornato Id={Id}", existing.Id);
+
             return RedirectToAction(nameof(Index),
                 new { cinemaOrderId = existing.CinemaOrderId });
-
         }
 
         [HttpPost]
@@ -199,24 +259,21 @@ namespace OrderTrackingApp.Controllers
         [HasPermission("ODG.Export")]
         public async Task<IActionResult> ExportPDF(int id)
         {
-            // 1) Carica ODG e relazioni
             var odgOrder = await _context.ODGOrders
                 .Include(o => o.TroupeOrari)
                 .Include(o => o.CastConvocazioni)
                 .Include(o => o.Trasporti)
                 .Include(o => o.Contatti)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(o => o.Id == id);
             if (odgOrder == null) return NotFound();
 
-            // 2) Utente che esporta
             var user = await _userManager.GetUserAsync(User);
             var exporterName = user?.VisualName ?? "Sconosciuto";
 
-            // 3) Prepara stream e logo
             using var stream = new MemoryStream();
             var logoPath = Path.Combine(_env.WebRootPath, "images", "logo_pj_nuovo.png");
 
-            // 4) Costruisci PDF
             Document.Create(doc =>
             {
                 doc.Page(page =>
@@ -225,24 +282,19 @@ namespace OrderTrackingApp.Controllers
                     page.Margin(30);
                     page.DefaultTextStyle(x => x.FontSize(11));
 
-                    // ─── HEADER SOLO PRIMA PAGINA ────────────────────────
                     page.Header().ShowOnce().Column(header =>
                     {
                         header.Item().AlignCenter().Element(c =>
                         {
                             if (System.IO.File.Exists(logoPath))
-                                c.MaxWidth(150)
-                                 .MaxHeight(150)
-                                 .Image(logoPath);
+                                c.MaxWidth(150).MaxHeight(150).Image(logoPath);
                         });
                         header.Item().PaddingTop(5).AlignCenter()
                               .Text("ORDINE DEL GIORNO").FontSize(24).Bold();
                     });
 
-                    // ─── CONTENUTO ───────────────────────────────────────
                     page.Content().Column(col =>
                     {
-                        // Tabella info principali
                         col.Item().Table(table =>
                         {
                             table.ColumnsDefinition(cd =>
@@ -253,19 +305,19 @@ namespace OrderTrackingApp.Controllers
 
                             var rows = new (string, string?)[]
                             {
-                        ("Giorno di Ripresa:",   odgOrder.DayRec),
-                        ("Film:",                odgOrder.Film),
-                        ("Regista:",             odgOrder.Regista),
-                        ("Produttore:",          odgOrder.Produttore),
-                        ("Location:",            odgOrder.Location),
-                        ("Meteo:",               odgOrder.Meteo),
-                        ("Scene da girare:",     odgOrder.SceneDaGirare),
-                        ("Catering:",            odgOrder.Catering),
-                        ("Convocazione sul Set:",     odgOrder.ProntiAGirare),
-                        ("Pronti a girare",      odgOrder.InizioRiprese),
-                        ("Pausa:",        odgOrder.PausaPranzo),
-                        ("Fine riprese:",        odgOrder.FineRiprese),
-                        ("Termine lavorazione:", odgOrder.TermineLavorazione)
+                                ("Giorno di Ripresa:",   odgOrder.DayRec),
+                                ("Film:",                odgOrder.Film),
+                                ("Regista:",             odgOrder.Regista),
+                                ("Produttore:",          odgOrder.Produttore),
+                                ("Location:",            odgOrder.Location),
+                                ("Meteo:",               odgOrder.Meteo),
+                                ("Scene da girare:",     odgOrder.SceneDaGirare),
+                                ("Catering:",            odgOrder.Catering),
+                                ("Convocazione sul Set:",odgOrder.ProntiAGirare),
+                                ("Pronti a girare",      odgOrder.InizioRiprese),
+                                ("Pausa:",               odgOrder.PausaPranzo),
+                                ("Fine riprese:",        odgOrder.FineRiprese),
+                                ("Termine lavorazione:", odgOrder.TermineLavorazione)
                             };
 
                             int i = 0;
@@ -279,12 +331,10 @@ namespace OrderTrackingApp.Controllers
                             }
                         });
 
-                        // Sezioni Markdown
                         AddSectionMarkdown(col, "NOTE DI PRODUZIONE", odgOrder.NoteProduzione);
                         AddSectionMarkdown(col, "NOTE DI REGIA", odgOrder.NoteRegia);
                         AddSectionMarkdown(col, "INFORMAZIONI UTILI", odgOrder.InformazioniUtili);
 
-                        // Tabelle responsive
                         AddTable(col, "TROUPE ORARI",
                                  new[] { "Nome", "Ruolo", "Orario" },
                                  odgOrder.TroupeOrari,
@@ -307,7 +357,6 @@ namespace OrderTrackingApp.Controllers
                                  c => new[] { c.Nome, c.Ruolo, c.Email },
                                  emailColumnNoWrap: true);
 
-                        // Footer in coda all'ultima pagina
                         col.Item()
                            .AlignBottom()
                            .AlignCenter()
@@ -316,13 +365,10 @@ namespace OrderTrackingApp.Controllers
                            .FontSize(10)
                            .FontColor(Colors.Grey.Medium);
                     });
-
-                    // non definiamo page.Footer() per non ripeterlo
                 });
             })
             .GeneratePdf(stream);
 
-            // 5) Restituisci PDF con FileContentResult
             stream.Position = 0;
             var pdfBytes = stream.ToArray();
             var pdfName = $"ODG_{odgOrder.Film}_{odgOrder.DayRec}.pdf";
@@ -332,8 +378,6 @@ namespace OrderTrackingApp.Controllers
                 FileDownloadName = pdfName
             };
         }
-
-        // — HELPERS (senza modifiche) —
 
         private void AddSectionMarkdown(ColumnDescriptor parent, string title, string? content)
         {
@@ -394,11 +438,11 @@ namespace OrderTrackingApp.Controllers
 
                         for (int c = 0; c < cells.Length; c++)
                         {
-                            var textBlock = table.Cell()
-                                                 .Background(bg)
-                                                 .Border(1).BorderColor(Colors.Black)
-                                                 .Padding(6)
-                                                 .Text(cells[c] ?? "");
+                            table.Cell()
+                                 .Background(bg)
+                                 .Border(1).BorderColor(Colors.Black)
+                                 .Padding(6)
+                                 .Text(cells[c] ?? "");
                         }
                     }
                 });
@@ -406,19 +450,17 @@ namespace OrderTrackingApp.Controllers
         }
 
         private void UpdateCollection<T>(
-    ICollection<T> existing,
-    ICollection<T> updated,
-    DbSet<T> dbSet,
-    int odgOrderId
-) where T : class
+            ICollection<T> existing,
+            ICollection<T>? updated,
+            DbSet<T> dbSet,
+            int odgOrderId
+        ) where T : class
         {
             updated ??= new List<T>();
 
-            // 1. Ottieni proprietà comuni (Id, ODGOrderId)
             var idProp = typeof(T).GetProperty("Id");
             var fkProp = typeof(T).GetProperty("ODGOrderId");
 
-            // 2. Rimuovi entità eliminate
             var updatedIds = updated.Select(u => idProp?.GetValue(u)).ToHashSet();
             foreach (var oldItem in existing.ToList())
             {
@@ -427,10 +469,8 @@ namespace OrderTrackingApp.Controllers
                     dbSet.Remove(oldItem);
             }
 
-            // 3. Aggiungi o aggiorna
             foreach (var item in updated)
             {
-                // Assegna la FK se esiste
                 fkProp?.SetValue(item, odgOrderId);
 
                 var itemId = idProp?.GetValue(item);
@@ -438,12 +478,10 @@ namespace OrderTrackingApp.Controllers
 
                 if (match == null)
                 {
-                    // nuovo
                     existing.Add(item);
                 }
                 else
                 {
-                    // esistente → copia proprietà aggiornate (escluse Id e ODGOrderId)
                     var props = typeof(T).GetProperties()
                                          .Where(p => p.Name != "Id" && p.Name != "ODGOrderId");
 
@@ -454,7 +492,6 @@ namespace OrderTrackingApp.Controllers
                     }
                 }
             }
-
         }
     }
 }
